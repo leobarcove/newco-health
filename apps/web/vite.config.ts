@@ -32,6 +32,12 @@ export default defineConfig({
       },
       // Worker logic lives in src/sw.ts (precache + offline intake queue +
       // push) — injectManifest so we control the code, kept minimal.
+      devOptions: {
+        // SW active under `make web` too — offline intake and push are
+        // testable locally, not just in production builds.
+        enabled: true,
+        type: 'module',
+      },
     }),
   ],
   server: {

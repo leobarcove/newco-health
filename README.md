@@ -77,6 +77,25 @@ key → the real driver activates. No code changes, ever.
 The same pattern means **staging can run the entire business with zero paid
 accounts**, and each real credential can be added independently, in any order.
 
+### Local testing notes
+
+- **Offline intake & web push work under `make web`** (the service worker runs
+  in dev via `devOptions`). Test offline: DevTools → Network → Offline → submit
+  an intake → the "saved — sending when you're back online" state appears.
+- **WebSockets:** run `make reverb` in a second terminal — `apps/web/.env.local`
+  (gitignored, mirrors the API's Reverb/VAPID keys) makes the SPA connect;
+  without it chat falls back to 3-second polling, which also works.
+- **Postgres parity:** local default is SQLite. To test against Postgres 18
+  (`make up` first): set `DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=newco
+  DB_USERNAME=newco DB_PASSWORD=local` in `apps/api/.env`, then `make fresh`.
+  Only Postgres enforces the bookings anti-double-booking index at the DB layer.
+- **Filament MFA is required** — first `/admin` login asks you to scan a TOTP
+  QR with any authenticator app (this is deliberate; it matches production).
+- **Re-seeding:** `make fresh` is the supported reset; `make seed` on a
+  populated database can hit unique constraints.
+- **Video calls** show the simulated panel locally (fake driver); the
+  `video_consults` flag is seeded on.
+
 ## Ground rules
 
 - **British English** everywhere: file names, identifiers, copy (licence, centre, programme).
