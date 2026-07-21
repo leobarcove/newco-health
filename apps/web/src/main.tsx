@@ -31,6 +31,7 @@ const AgendaPage = lazy(() => import('./routes/doctor/AgendaPage').then((m) => (
 const AvailabilityPage = lazy(() =>
   import('./routes/doctor/AvailabilityPage').then((m) => ({ default: m.AvailabilityPage })),
 )
+const EarningsPage = lazy(() => import('./routes/doctor/EarningsPage').then((m) => ({ default: m.EarningsPage })))
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (getToken() === null) return <Navigate to="/login" replace />
@@ -48,6 +49,7 @@ const router = createBrowserRouter([
   { path: '/doctor/consult/:id', element: <RequireAuth><DoctorConsultPage /></RequireAuth> },
   { path: '/doctor/agenda', element: <RequireAuth><AgendaPage /></RequireAuth> },
   { path: '/doctor/availability', element: <RequireAuth><AvailabilityPage /></RequireAuth> },
+  { path: '/doctor/earnings', element: <RequireAuth><EarningsPage /></RequireAuth> },
   { path: '/sponsor/login', element: <SponsorLoginPage /> },
   { path: '/sponsor', element: <RequireAuth><SponsorDashboardPage /></RequireAuth> },
 ])

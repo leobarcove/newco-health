@@ -41,6 +41,10 @@ jobs:
         run: |
           npm run lint --workspace apps/web
           npm run build --workspace apps/web
+      - name: OpenAPI client drift check
+        run: |
+          npm run generate -w packages/api-client
+          git diff --exit-code packages/api-client/src/types.ts
       - name: Enforce first-load JS budget (≤ 200 KB gzipped)
         run: |
           total=0
@@ -57,6 +61,35 @@ jobs:
             echo "::error::First-load JS budget exceeded: ${total} > 204800 bytes (dev plan §8)"
             exit 1
           fi
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: pdo_sqlite
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: |
+          composer install --prefer-dist --no-progress --no-interaction
+          cp .env.example .env
+          php artisan key:generate
+      - name: Install web dependencies + browser
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Golden journeys
+        working-directory: apps/web
+        env:
+          PHP_BIN: php
+        run: npx playwright test
 
   security:
     runs-on: ubuntu-latest

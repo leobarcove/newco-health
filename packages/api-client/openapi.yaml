@@ -1,0 +1,798 @@
+openapi: 3.1.0
+info:
+  title: NewCo Health API
+  version: 0.1.0
+  description: >
+    Contract for the patient/doctor/sponsor PWA. This spec is the source of
+    truth (dev plan §11): change the API here first, regenerate the client,
+    and CI fails on drift between spec and generated types.
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/otp/request:
+    post:
+      security: []
+      summary: Send a sign-in code by SMS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, pattern: '^\+234[0-9]{10}$' }
+      responses:
+        '200': { description: Code sent }
+        '429': { description: Rate limited }
+
+  /auth/otp/verify:
+    post:
+      security: []
+      summary: Verify the code and receive a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone: { type: string }
+                code: { type: string, minLength: 6, maxLength: 6 }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/Me' }
+        '422': { description: Wrong or expired code }
+
+  /auth/sponsor/register:
+    post:
+      security: []
+      summary: Create a diaspora sponsor account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 10 }
+      responses:
+        '201':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/Me' }
+
+  /auth/sponsor/login:
+    post:
+      security: []
+      summary: Sponsor email sign-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/Me' }
+        '422': { description: Invalid credentials }
+
+  /me:
+    get:
+      summary: Current user
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+    patch:
+      summary: Update profile (name, locale)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                locale: { type: string, enum: [en, pcm] }
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+
+  /consents:
+    get:
+      summary: Current consent state per kind
+      responses:
+        '200':
+          description: Consent map
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsentMap' }
+    post:
+      summary: Grant or revoke a consent (append-only ledger)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, granted]
+              properties:
+                kind: { $ref: '#/components/schemas/ConsentKind' }
+                granted: { type: boolean }
+      responses:
+        '201':
+          description: New consent map
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsentMap' }
+
+  /consults:
+    get:
+      summary: The patient's consults (latest 20)
+      responses:
+        '200':
+          description: Consult list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Consult' }
+    post:
+      summary: Start a consult from triage intake
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [complaint]
+              properties:
+                complaint: { type: string, maxLength: 2000 }
+                answers:
+                  type: object
+                  additionalProperties: { type: boolean }
+                dependant_id: { type: [string, 'null'] }
+      responses:
+        '201':
+          description: Created (state=triaged awaiting payment, queued, or escalated)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Consult' }
+        '428': { description: Telemedicine consent required (code=consent_required) }
+
+  /consults/{consult}:
+    get:
+      summary: One consult (participants + staff only; PHI-logged)
+      parameters: [{ $ref: '#/components/parameters/consultId' }]
+      responses:
+        '200':
+          description: Consult
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Consult' }
+        '403': { description: Not a participant }
+
+  /consults/{consult}/messages:
+    get:
+      summary: Thread messages (PHI-logged)
+      parameters:
+        - $ref: '#/components/parameters/consultId'
+        - { name: after, in: query, schema: { type: string }, description: 'Only messages with id greater than this' }
+      responses:
+        '200':
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Message' }
+    post:
+      summary: Send a message into the thread
+      parameters: [{ $ref: '#/components/parameters/consultId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, maxLength: 5000 }
+                kind: { type: string, enum: [text, image, voice_note] }
+      responses:
+        '201': { description: Sent }
+        '403': { description: Not a participant }
+
+  /consults/{consult}/pay:
+    post:
+      summary: Pay the consult fee (idempotent)
+      parameters: [{ $ref: '#/components/parameters/consultId' }]
+      responses:
+        '201':
+          description: Payment (fake gateway settles synchronously; real gateways return checkout_url)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+
+  /payments/{payment}:
+    get:
+      summary: One payment (owner only)
+      parameters:
+        - { name: payment, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Payment
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+
+  /prescriptions/{prescription}:
+    get:
+      summary: One prescription (PHI-logged)
+      parameters:
+        - { name: prescription, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Prescription
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Prescription' }
+
+  /dependants:
+    get:
+      summary: The patient's dependants
+      responses:
+        '200':
+          description: Dependants
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Dependant' }
+    post:
+      summary: Add a dependant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, relationship]
+              properties:
+                name: { type: string }
+                relationship: { type: string, enum: [child, parent, spouse, other] }
+                date_of_birth: { type: [string, 'null'], format: date }
+                sex: { type: [string, 'null'], enum: [female, male, null] }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dependant' }
+
+  /sponsorships:
+    get:
+      summary: Sponsorship invitations/links for the signed-in patient
+      responses:
+        '200':
+          description: Sponsorships
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    sponsor_name: { type: string }
+                    status: { $ref: '#/components/schemas/SponsorshipStatus' }
+
+  /sponsorships/{sponsorship}/respond:
+    post:
+      summary: Accept or decline a sponsorship invitation
+      parameters:
+        - { name: sponsorship, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accept]
+              properties:
+                accept: { type: boolean }
+      responses:
+        '200': { description: Responded }
+
+  /sponsor/overview:
+    get:
+      summary: Sponsor dashboard (wallet + beneficiaries)
+      responses:
+        '200':
+          description: Overview
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SponsorOverview' }
+
+  /sponsor/beneficiaries:
+    post:
+      summary: Invite a beneficiary by phone (SMS sent; idempotent)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, label]
+              properties:
+                phone: { type: string, pattern: '^\+234[0-9]{10}$' }
+                label: { type: string, maxLength: 60 }
+      responses:
+        '201': { description: Invited }
+
+  /sponsor/wallet/topup:
+    post:
+      summary: Top up the care wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount_kobo]
+              properties:
+                amount_kobo: { type: integer, minimum: 100000, maximum: 100000000 }
+      responses:
+        '201':
+          description: Payment started (or settled, fake gateway)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  status: { type: string }
+                  checkout_url: { type: [string, 'null'] }
+
+  /booking/doctors:
+    get:
+      summary: Doctors currently taking bookings, with next free slot
+      responses:
+        '200':
+          description: Bookable doctors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    name: { type: string }
+                    next_slot: { type: string, format: date-time }
+
+  /booking/doctors/{doctor}/slots:
+    get:
+      summary: Free slots for a doctor on a local date
+      parameters:
+        - { name: doctor, in: path, required: true, schema: { type: string } }
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Slots (UTC instants)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Slot' }
+
+  /bookings:
+    get:
+      summary: The patient's bookings
+      responses:
+        '200':
+          description: Bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Booking' }
+    post:
+      summary: Book a slot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [doctor_id, starts_at]
+              properties:
+                doctor_id: { type: string }
+                starts_at: { type: string, format: date-time }
+                complaint: { type: [string, 'null'], maxLength: 2000 }
+      responses:
+        '201':
+          description: Confirmed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Booking' }
+
+  /bookings/{booking}/cancel:
+    post:
+      summary: Cancel (patient cutoff enforced)
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      responses:
+        '200': { description: Cancelled }
+
+  /bookings/{booking}/reschedule:
+    post:
+      summary: Reschedule (atomic cancel + rebook)
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [starts_at]
+              properties:
+                starts_at: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Replacement booking
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Booking' }
+
+  /doctor/queue:
+    get:
+      summary: Waiting consults, oldest first (doctor only)
+      responses:
+        '200':
+          description: Queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    queued_at: { type: string, format: date-time }
+                    waiting_minutes: { type: integer }
+
+  /doctor/consults/{consult}/accept:
+    post:
+      summary: Accept a queued consult (licence-gated)
+      parameters: [{ $ref: '#/components/parameters/consultId' }]
+      responses:
+        '200': { description: In consult }
+
+  /doctor/consults/{consult}/conclude:
+    post:
+      summary: Conclude the consult (credits earnings for paid consults)
+      parameters: [{ $ref: '#/components/parameters/consultId' }]
+      responses:
+        '200': { description: Concluded }
+
+  /doctor/consults/{consult}/prescriptions:
+    post:
+      summary: Issue a prescription
+      parameters: [{ $ref: '#/components/parameters/consultId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  items:
+                    type: object
+                    required: [formulary_item_id, dosage, duration_days]
+                    properties:
+                      formulary_item_id: { type: integer }
+                      dosage: { type: string, maxLength: 120 }
+                      duration_days: { type: integer, minimum: 1, maximum: 90 }
+                      instructions: { type: [string, 'null'], maxLength: 500 }
+      responses:
+        '201':
+          description: Issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Prescription' }
+
+  /doctor/earnings:
+    get:
+      summary: Earnings summary (doctor only)
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending_kobo: { type: integer }
+                  paid_kobo: { type: integer }
+                  pending_display: { type: string }
+                  paid_display: { type: string }
+                  recent:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        consult_id: { type: string }
+                        amount_kobo: { type: integer }
+                        status: { type: string, enum: [pending, paid] }
+                        earned_at: { type: string, format: date-time }
+
+  /doctor/availability:
+    get:
+      summary: Weekly availability templates (doctor only)
+      responses:
+        '200':
+          description: Templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AvailabilityTemplate' }
+    put:
+      summary: Replace the weekly template wholesale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templates]
+              properties:
+                templates:
+                  type: array
+                  items: { $ref: '#/components/schemas/AvailabilityTemplate' }
+      responses:
+        '200': { description: Saved }
+
+  /doctor/agenda:
+    get:
+      summary: Booked appointments for a local date (default today)
+      parameters:
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { description: Agenda }
+
+  /doctor/bookings/{booking}/begin:
+    post:
+      summary: Begin the booked consult (window-gated; bypasses the queue)
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      responses:
+        '201':
+          description: Consult started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consult_id: { type: string }
+                  state: { type: string }
+
+  /formulary:
+    get:
+      summary: Formulary search for the prescribe autocomplete (doctor only)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    label: { type: string }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+
+  parameters:
+    consultId:
+      name: consult
+      in: path
+      required: true
+      schema: { type: string }
+    bookingId:
+      name: booking
+      in: path
+      required: true
+      schema: { type: string }
+
+  schemas:
+    Me:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        phone: { type: [string, 'null'] }
+        role: { type: string, enum: [patient, doctor, sponsor, staff] }
+        locale: { type: string, enum: [en, pcm] }
+
+    ConsentKind:
+      type: string
+      enum: [telemedicine_terms, privacy_policy, sponsor_visibility]
+
+    ConsentMap:
+      type: object
+      properties:
+        telemedicine_terms: { type: boolean }
+        privacy_policy: { type: boolean }
+        sponsor_visibility: { type: boolean }
+
+    Consult:
+      type: object
+      properties:
+        id: { type: string }
+        state:
+          type: string
+          enum: [requested, triaged, queued, assigned, in_consult, concluded, closed, escalated_emergency, abandoned]
+        modality: { type: string, enum: [chat, voice, video] }
+        queue_position: { type: [integer, 'null'] }
+        doctor:
+          type: [object, 'null']
+          properties:
+            name: { type: string }
+        for_dependant:
+          type: [object, 'null']
+          properties:
+            id: { type: string }
+            name: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+
+    Message:
+      type: object
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [text, image, voice_note, system, prescription] }
+        body: { type: string }
+        sender_id: { type: [integer, 'null'] }
+        mine: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [pending, succeeded, failed, refunded] }
+        amount_kobo: { type: integer }
+        amount_display: { type: string }
+        currency: { type: string }
+        reference: { type: string }
+        checkout_url: { type: [string, 'null'] }
+        consult_id: { type: [string, 'null'] }
+
+    Prescription:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [issued, dispensed, cancelled] }
+        pickup_code: { type: string }
+        doctor:
+          type: [object, 'null']
+          properties:
+            name: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              medicine: { type: string }
+              dosage: { type: string }
+              duration_days: { type: integer }
+              instructions: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+
+    Dependant:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        relationship: { type: string, enum: [child, parent, spouse, other] }
+        date_of_birth: { type: [string, 'null'], format: date }
+        sex: { type: [string, 'null'] }
+
+    SponsorshipStatus:
+      type: string
+      enum: [pending, active, declined, paused]
+
+    SponsorOverview:
+      type: object
+      properties:
+        wallet_balance_kobo: { type: integer }
+        wallet_display: { type: string }
+        beneficiaries:
+          type: array
+          items:
+            type: object
+            properties:
+              sponsorship_id: { type: string }
+              label: { type: string }
+              phone: { type: string }
+              status: { $ref: '#/components/schemas/SponsorshipStatus' }
+              care_visible: { type: boolean }
+              last_consult:
+                type: [object, 'null']
+                properties:
+                  state: { type: string }
+                  at: { type: string, format: date-time }
+
+    Slot:
+      type: object
+      properties:
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+
+    Booking:
+      type: object
+      properties:
+        id: { type: string }
+        state: { type: string, enum: [confirmed, completed, cancelled, no_show] }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        doctor:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+        consult_id: { type: [string, 'null'] }
+
+    AvailabilityTemplate:
+      type: object
+      required: [weekday, start_time, end_time, slot_minutes]
+      properties:
+        weekday: { type: integer, minimum: 1, maximum: 7, description: 'ISO — 1=Monday' }
+        start_time: { type: string, example: '09:00' }
+        end_time: { type: string, example: '12:00' }
+        slot_minutes: { type: integer, enum: [10, 15, 20, 30, 45, 60] }

@@ -34,6 +34,7 @@ export function QueuePage() {
         <nav className="flex gap-4 text-base">
           <Link to="/doctor/agenda" className="text-slate-500 underline">Agenda</Link>
           <Link to="/doctor/availability" className="text-slate-500 underline">Availability</Link>
+          <Link to="/doctor/earnings" className="text-slate-500 underline">Earnings</Link>
         </nav>
       </header>
 

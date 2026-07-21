@@ -125,3 +125,23 @@ it('broadcasts every consult message on the private consult channel', function (
             && $event->broadcastWith() === ['id' => $event->message->id]; // id only — no PHI on the wire
     });
 });
+
+it('downloads the prescription as a pdf with phi logging', function () {
+    $patient = Patient::factory()->create();
+    $doctor = Doctor::factory()->create();
+    $consultId = startLiveConsult($patient, $doctor);
+    $medicine = FormularyItem::first();
+
+    $prescriptionId = $this->actingAs($doctor->user)
+        ->postJson("/api/doctor/consults/{$consultId}/prescriptions", [
+            'items' => [['formulary_item_id' => $medicine->id, 'dosage' => '1 daily', 'duration_days' => 5]],
+        ])
+        ->json('id');
+
+    $this->actingAs($patient->user)
+        ->get("/api/prescriptions/{$prescriptionId}/pdf")
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
+
+    expect(\Illuminate\Support\Facades\DB::table('phi_access_log')->where('label', 'prescription.pdf')->count())->toBe(1);
+});

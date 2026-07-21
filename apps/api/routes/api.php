@@ -22,8 +22,9 @@ Route::prefix('auth')->group(function () {
     Route::post('sponsor/login', [\App\Modules\Patients\Http\SponsorController::class, 'login'])->middleware('throttle:20,1');
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->group(function () {
     Route::get('me', [AuthController::class, 'me']);
+    Route::patch('me', [AuthController::class, 'updateMe']);
 
     // Patient
     Route::get('consults', [ConsultController::class, 'index']);
@@ -62,6 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('doctor/consults/{consult}/prescriptions', [PrescriptionController::class, 'store']);
     Route::get('prescriptions/{prescription}', [PrescriptionController::class, 'show'])
         ->middleware('phi.log:prescription.read');
+    Route::get('prescriptions/{prescription}/pdf', [PrescriptionController::class, 'pdf'])
+        ->middleware('phi.log:prescription.pdf');
 
     // Payments
     Route::post('consults/{consult}/pay', [PaymentController::class, 'payForConsult']);

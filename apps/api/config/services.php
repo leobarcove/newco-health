@@ -35,6 +35,10 @@ return [
         ],
     ],
 
+    'otp' => [
+        'test_code' => env('OTP_TEST_CODE'),
+    ],
+
     'paystack' => [
         'secret' => env('PAYSTACK_SECRET_KEY'),
         'public' => env('PAYSTACK_PUBLIC_KEY'),

@@ -60,6 +60,17 @@ class PrescriptionController extends Controller
         return response()->json($this->serialise($prescription->load('items.formularyItem', 'doctor.user')));
     }
 
+    /** Downloadable PDF — pharmacy-counter and print-friendly. */
+    public function pdf(Request $request, Prescription $prescription)
+    {
+        $this->authorize('view', $prescription->consult);
+
+        $prescription->load('items.formularyItem', 'doctor.user');
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('prescriptions.pdf', ['prescription' => $prescription])
+            ->download("prescription-{$prescription->pickup_code}.pdf");
+    }
+
     private function serialise(Prescription $prescription): array
     {
         return [

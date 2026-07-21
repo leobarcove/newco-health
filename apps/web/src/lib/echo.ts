@@ -15,8 +15,14 @@ let instance: Echo<'reverb'> | null = null
 /**
  * Lazy singleton — the websocket only connects once a consult screen needs it.
  * Private-channel auth reuses the Sanctum bearer token via /api/broadcasting/auth.
+ *
+ * Returns null when Reverb isn't configured (VITE_REVERB_APP_KEY unset) —
+ * callers fall back to polling, the same rung the ladder uses when the
+ * socket can't hold on a weak network.
  */
-export function echo(): Echo<'reverb'> {
+export function echo(): Echo<'reverb'> | null {
+  if (!import.meta.env.VITE_REVERB_APP_KEY) return null
+
   if (instance === null) {
     instance = new Echo({
       broadcaster: 'reverb',

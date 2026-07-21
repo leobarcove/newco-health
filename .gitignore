@@ -8,3 +8,7 @@ dist/
 *.log
 .phpunit.cache/
 storage/*.key
+test-results/
+playwright-report/
+apps/api/database/e2e.sqlite
+apps/api/database/database.sqlite

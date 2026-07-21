@@ -26,7 +26,10 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
   useEffect(() => {
     if (!live) return
 
-    const channel = echo()
+    const client = echo()
+    if (client === null) return // Reverb not configured — polling carries the thread
+
+    const channel = client
       .private(`consult.${consultId}`)
       .listen('.message.sent', () => {
         // Frames carry the id only (no PHI on the wire) — refetch via REST.
@@ -37,7 +40,7 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
 
     return () => {
       channel.stopListening('.message.sent')
-      echo().leave(`consult.${consultId}`)
+      client.leave(`consult.${consultId}`)
       setSocketUp(false)
     }
   }, [consultId, live, queryClient])

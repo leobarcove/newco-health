@@ -1,0 +1,20 @@
+{
+    "Your NewCo Health code is :code. It expires in :minutes minutes.": "Your NewCo Health code na :code. E go expire afta :minutes minutes.",
+    "We sent a code to :phone by SMS.": "We don send code go :phone by SMS.",
+    "Too many code requests. Please wait a while and try again.": "You don request code too many times. Abeg wait small before you try again.",
+    "That code didn't match or has expired. Request a new one.": "Dat code no match or e don expire. Abeg request new one.",
+    "Your symptoms need urgent in-person care. Please go to the nearest hospital now. Our team has been alerted.": "Your sickness need doctor attention sharp sharp. Abeg go di nearest hospital now. We don alert our team.",
+    "You are in the queue. A doctor will be with you shortly — we will notify you.": "You dey queue. Doctor go soon attend to you — we go notify you.",
+    "Complete payment to join the queue — the fee is shown before you pay.": "Make payment first before you fit join queue — you go see di price before you pay.",
+    "Payment received. You are in the queue — a doctor will be with you shortly.": "We don receive your payment. You dey queue — doctor go soon attend to you.",
+    "This consult is covered by your sponsor. You are in the queue — a doctor will be with you shortly.": "Your sponsor don cover dis consult. You dey queue — doctor go soon attend to you.",
+    "Dr :name has joined your consult.": "Dr :name don join your consult.",
+    "This consult has ended. You can reply here for the next 72 hours if you have follow-up questions.": "Dis consult don end. You fit still reply here for di next 72 hours if you get question.",
+    "Booked appointment with Dr :name has started.": "Appointment wey you book with Dr :name don start.",
+    "Booked appointment": "Appointment wey you book",
+    "Reminder: your appointment with Dr :doctor is at :time. Open the app a few minutes early.": "Reminder: your appointment with Dr :doctor na :time. Abeg open di app small time before.",
+    ":sponsor wants to sponsor your healthcare on NewCo Health. Sign in with this number to accept — it costs you nothing.": ":sponsor wan sponsor your healthcare for NewCo Health. Sign in with dis number to accept — e no go cost you anything.",
+    "Please review and accept the telemedicine terms before starting a consult.": "Abeg read and accept di telemedicine terms before you start consult.",
+    "Bookings can only be cancelled up to :hours hours before the appointment.": "You fit only cancel booking :hours hours before di appointment time.",
+    "Email or password is incorrect.": "Email or password no correct."
+}

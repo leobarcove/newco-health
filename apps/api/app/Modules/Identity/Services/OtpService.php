@@ -53,6 +53,16 @@ class OtpService
      */
     public function verify(string $phone, string $code): ?User
     {
+        // E2E/QA bypass: a fixed code accepted only outside production and only
+        // when explicitly configured (OTP_TEST_CODE env; never set in prod).
+        $testCode = config('services.otp.test_code');
+        if ($testCode !== null && $testCode !== '' && ! app()->isProduction() && hash_equals((string) $testCode, $code)) {
+            return User::firstOrCreate(
+                ['phone' => $phone],
+                ['name' => '', 'role' => User::ROLE_PATIENT, 'password' => str()->random(40)],
+            );
+        }
+
         $otp = OtpCode::where('phone', $phone)->latest()->first();
 
         if ($otp === null || $otp->expires_at->isPast() || $otp->attempts >= self::MAX_ATTEMPTS) {

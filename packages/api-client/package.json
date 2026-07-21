@@ -1,0 +1,9 @@
+{
+  "name": "@newco/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "types": "src/types.ts",
+  "scripts": {
+    "generate": "openapi-typescript openapi.yaml -o src/types.ts"
+  }
+}

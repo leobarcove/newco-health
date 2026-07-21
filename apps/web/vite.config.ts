@@ -28,6 +28,22 @@ export default defineConfig({
         // Keep the service worker minimal: app-shell cache + offline queue only
         // (dev plan §16 — resist cleverness here).
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        runtimeCaching: [
+          {
+            // Offline intake: consult submissions made without signal queue in
+            // IndexedDB and replay via Background Sync when the network returns
+            // (business plan §6 rule 3).
+            urlPattern: /\/api\/consults$/,
+            method: 'POST',
+            handler: 'NetworkOnly',
+            options: {
+              backgroundSync: {
+                name: 'consult-intake-queue',
+                options: { maxRetentionTime: 24 * 60 }, // minutes
+              },
+            },
+          },
+        ],
       },
     }),
   ],

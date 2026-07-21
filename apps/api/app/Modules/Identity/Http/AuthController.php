@@ -69,6 +69,19 @@ class AuthController extends Controller
             'name' => $user->name,
             'phone' => $user->phone,
             'role' => $user->role,
+            'locale' => $user->locale,
         ]);
+    }
+
+    public function updateMe(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:120'],
+            'locale' => ['sometimes', \Illuminate\Validation\Rule::in(\App\Http\Middleware\SetUserLocale::SUPPORTED)],
+        ]);
+
+        $request->user()->update($data);
+
+        return $this->me($request);
     }
 }
