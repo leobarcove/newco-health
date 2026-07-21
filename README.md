@@ -31,15 +31,32 @@ docs/         Plans, ADRs (docs/adr), runbooks (docs/runbooks)
 
 ## Local development
 
-Prerequisites: PHP ≥ 8.3, Composer, Node ≥ 22, Docker.
+Prerequisites: PHP ≥ 8.3, Composer, Node ≥ 22. (Docker optional — sqlite is the default local DB.)
 
 ```bash
-make up          # postgres + redis + mailpit + minio (docker compose)
-make api         # serve Laravel on :8000 (runs migrations first — local only)
-make web         # Vite dev server on :5173 (proxies /api → :8000)
+make fresh       # wipe + migrate + seed the full dev dataset
+make api         # API + Filament backoffice on :8000
+make web         # PWA dev server on :5173 (proxies /api → :8000)
+
+# optional extras
+make up          # docker: postgres + redis + mailpit + minio
+make reverb      # websockets on :8080 (chat polls without it)
+make queue       # scheduler: booking reminders, no-show/hold sweeps
+make test        # Pest + web build     ·  make e2e  # Playwright journey
 ```
 
-Backoffice: http://localhost:8000/admin · PWA: http://localhost:5173
+### Seeded sign-ins (local OTP code is always `000000`)
+
+| Who | Sign in | What you'll see |
+|---|---|---|
+| Patient **Bisi** | `+234 801 111 1111` + code `000000` | Live consult with Dr Amara, concluded consult with prescription `RX-SAMPLE23`, 2 dependants, active sponsor, tomorrow's booking |
+| Patient **Chuka** | `+234 802 222 2222` + code `000000` | Waiting in the queue |
+| Doctor **Amara** | `+234 809 999 9991` + code `000000` | Mid-consult with Bisi, SOAP note started, Mon–Fri availability |
+| Doctor **Tunde** | `+234 809 999 9992` + code `000000` | Free — sees Chuka in the queue; tomorrow's booking with Bisi |
+| Sponsor | `sponsor@newco.local` / `sponsorpass` (via /sponsor/login) | ₦10,000 wallet, "Mum" (Bisi) as active beneficiary |
+| Staff | `admin@newco.local` / `password` at `/admin` | Filament backoffice: consults board, credentialing, compliance console |
+
+The fixed OTP works because `.env` sets `OTP_TEST_CODE=000000` — the bypass is hard-disabled in production builds.
 
 ## Ground rules
 
