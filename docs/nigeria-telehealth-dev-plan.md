@@ -95,8 +95,8 @@ newco-health/
 ├── apps/
 │   ├── api/                  # Laravel 13 (+ Filament backoffice at /admin)
 │   │   ├── app/
-│   │   │   ├── modules/      # modular monolith (Section 5.1)
-│   │   │   └── filament/     # backoffice resources/pages/widgets
+│   │   │   ├── Modules/      # modular monolith (Section 5.1)
+│   │   │   └── Filament/     # backoffice resources/pages/widgets
 │   │   ├── database/migrations/
 │   │   └── tests/            # Pest
 │   └── web/                  # Vite + React SPA (patient + doctor + sponsor PWA)
@@ -104,12 +104,13 @@ newco-health/
 │           ├── routes/
 │           │   ├── patient/
 │           │   ├── doctor/
-│           │   └── sponsor/
+│           │   ├── sponsor/
+│           │   └── pharmacy/
 │           ├── features/     # consult-thread, payments, triage, ...
 │           └── lib/          # api client, offline queue, push
 ├── packages/
 │   ├── api-client/           # TypeScript client generated from OpenAPI spec
-│   └── config/               # shared eslint/tsconfig/tailwind presets
+│   └── config/               # shared presets (stub — design tokens currently live in apps/web/src/index.css @theme)
 ├── infra/
 │   ├── docker-compose.yml    # local dev: postgres, redis, mailpit, minio
 │   ├── deploy/               # production compose files + Caddy config
@@ -117,7 +118,7 @@ newco-health/
 ├── docs/
 │   ├── adr/                  # architecture decision records (one page each)
 │   └── runbooks/             # deploy, incident, restore-from-backup
-└── .github/workflows/        # ci.yml, deploy-api.yml, deploy-web.yml
+└── .github/workflows/        # ci.yml (deploy-*.yml written at hosting decision)
 ```
 
 (No turborepo needed with a single JS app — plain npm workspaces suffice; add build orchestration only if a second JS app ever appears.)
@@ -150,7 +151,7 @@ Conventions: Laravel defaults everywhere (Eloquent, form requests, policies, que
 
 - Static build served by Caddy/Cloudflare — **no server runtime**; a deploy is an atomic swap of a files folder.
 - **Service worker via `vite-plugin-pwa` (Workbox)**: offline app shell + background-sync queue for form submissions (intake completed offline syncs when signal returns).
-- Installable manifest; web push (VAPID) subscriptions stored per device.
+- Installable manifest; web push (VAPID) — subscriptions table ready, subscribe endpoints + custom SW **pending** (Notifier reaches users via WhatsApp/SMS meanwhile).
 - Routing: React Router route groups `patient/`, `doctor/`, `sponsor/`; lazy-loaded per group so each audience downloads only its slice.
 - Chat UI = the canonical consult surface; renders from local cache first, reconciles with server.
 - **Video via Daily.co Prebuilt** embedded component — we do not build a call UI in v1; connection-quality gate decides whether the "upgrade to video" button even appears.
@@ -186,13 +187,13 @@ Rules: every transition is an audited event; modality switches (video↔voice↔
 | **Daily.co** | Server-side room + short-lived meeting tokens (CLEA pattern); rooms named by consult ULID; auto-expire | Voice-only fallback on same room; PSTN coordinator callback as last rung |
 | **Termii** | OTP + transactional SMS, sender ID registration early (takes weeks — start Month 0) | Queue with retry/backoff |
 | **WhatsApp Cloud API** | Template messages (reminders, prescription-ready, payment links); inbound routed to care coordinators in admin | Business verification takes weeks — start Month 0 |
-| **Push** | Web push (VAPID) for PWA — on installed Android PWAs this is functionally native-grade (system tray, actions, works with browser closed). FCM only if/when TWA ships | Nigerian reality: Transsion (Tecno/Infinix/itel) battery optimisers can delay background delivery — for native apps too — so critical alerts always cascade push → WhatsApp → SMS, and the sprint device bench includes a Tecno. Web push cannot do full-screen call ringing (a §2.1 native trigger, not needed for patient-initiated consults) |
+| **Push** | Web push (VAPID) for PWA — native-grade on installed Android PWAs. **Delivery pending**: needs the injectManifest service-worker switch + subscribe endpoints (push_subscriptions table ready; Notifier chain falls through to WhatsApp/SMS meanwhile). FCM only if/when TWA ships | Nigerian reality: Transsion (Tecno/Infinix/itel) battery optimisers can delay background delivery — for native apps too — so critical alerts always cascade push → WhatsApp → SMS, and the sprint device bench includes a Tecno. Web push cannot do full-screen call ringing (a §2.1 native trigger, not needed for patient-initiated consults) |
 
 ---
 
 ## 7. Data Model (core entities)
 
-`users` (polymorphic role: patient/doctor/sponsor/staff) · `patients` · `dependants` · `sponsorships` (sponsor↔beneficiary, plan, consent flags) · `doctors` (mdcn_licence_no, licence_expires_at, status) · `consults` (state, modality, patient_id, doctor_id, daily_room) · `consult_messages` (canonical record; text/image/voice-note/system) · `consult_notes` (SOAP-lite, doctor-only) · `prescriptions` + `prescription_items` (formulary FK) · `pharmacies` + `fulfilments` (pickup_code, state) · `payments` / `wallets` / `subscriptions` · `doctor_earnings` with a shared `PO-` payout reference per run (simpler than separate batch tables — amended to match code) · `programmes` + `programme_enrolments` (check-in cadence as columns, not rows — amended to match code) · `consents` (append-only) · `phi_access_log` (append-only) · `audit_events` (append-only).
+`users` (polymorphic role: patient/doctor/sponsor/staff) · `patients` · `dependants` · `sponsorships` (sponsor↔beneficiary; visibility consent lives in the ledger, not flags) · `doctors` (mdcn_licence_no, licence_expires_at, status) · `consults` (state, modality, patient_id, doctor_id, daily_room) · `consult_messages` (canonical record; text/image/voice-note/system) · `consult_notes` (SOAP-lite, doctor-only) · `prescriptions` + `prescription_items` (formulary FK) · `pharmacies` (dispensing recorded on `prescriptions`: pickup_code + pharmacy_id + dispensed_at — no separate fulfilments table) · `payments` / `wallets` / `subscriptions` · `doctor_earnings` with a shared `PO-` payout reference per run (simpler than separate batch tables — amended to match code) · `programmes` + `programme_enrolments` (check-in cadence as columns, not rows — amended to match code) · `organisations` + `organisation_memberships` (employer payers) · `push_subscriptions` · `consents` (append-only) · `phi_access_log` (append-only) · `audit_events` (append-only).
 
 PHI columns (names, clinical text, phone) encrypted at rest via Laravel's encrypted casts; keys via APP_KEY today; move to KMS at production deploy. ULIDs for all public IDs.
 
@@ -203,11 +204,11 @@ PHI columns (names, clinical text, phone) encrypted at rest via Laravel's encryp
 | Budget | Limit | Enforcement |
 |---|---|---|
 | Patient PWA first-load JS | ≤ 200 KB gzipped | Vite build size check (`rollup-plugin-visualizer` + CI budget), fails the build |
-| Any patient route payload | ≤ 300 KB total | Lighthouse CI on 3G throttle profile |
-| Time-to-interactive on throttled 3G / mid-range Android profile | ≤ 5 s | Lighthouse CI budget file |
+| Any patient route payload | ≤ 300 KB total | Lighthouse CI on 3G throttle profile (**pending — not yet wired**) |
+| Time-to-interactive on throttled 3G / mid-range Android profile | ≤ 5 s | Lighthouse CI budget file (**pending — not yet wired**) |
 | Image uploads | client-side compress to ≤ 200 KB, EXIF-stripped | upload pipeline |
 | API responses | paginated, gzip/brotli, no unbounded lists | code review checklist |
-| Offline | intake + history readable offline; writes queue and sync | Playwright test with network-offline emulation |
+| Offline | intake + history readable offline; writes queue and sync | Workbox Background Sync configured; Playwright offline-emulation test **pending** |
 
 Real-device check each sprint: one mid-range Android (~2 GB RAM) on a throttled connection runs the smoke flow.
 
@@ -254,7 +255,7 @@ Release cadence: ship whenever green — that is the entire point of the PWA str
 | API unit/feature | Pest | Consult state machine, payments/webhooks, payouts, prescribing = **near-100%**; everything else pragmatic |
 | Contract | OpenAPI spec is source of truth; `api-client` regenerated in CI; drift fails build | prevents web/api desync |
 | E2E | Playwright | 4 golden journeys (register→consult→chat→conclude, booking, prescription→pharmacy dispense, sponsor→beneficiary) run SERIALLY against one shared API; the refund journey is exempted (staff-only Filament flow) and covered by Pest instead |
-| Load | k6, pre-launch + before campaigns | queue + WebSocket fan-out under 500 concurrent consults |
+| Load | k6 (script at infra/k6/consult-load.js; never yet run — staging-gated) | queue under 500 concurrent consults; WebSocket fan-out scenario pending |
 | Manual | sprint-end real-device pass on throttled 3G | the budget tables above |
 
 No aspirational 80%-everything mandates — test depth follows blast radius.
@@ -264,7 +265,7 @@ No aspirational 80%-everything mandates — test depth follows blast radius.
 ## 12. Security & Compliance Implementation
 
 **Identity & access**
-- Sanctum sessions; OTP rate-limiting; sponsor/staff 2FA (TOTP); staff sessions short-lived with device list + remote revoke.
+- Sanctum sessions; OTP rate-limiting; sponsor/staff 2FA (TOTP); staff sessions short-lived; per-device list + remote revoke **pending** (erasure revokes all tokens today).
 - RBAC via policies; sponsor sees billing + care-status only unless patient consent toggle is on (enforced in policy layer, not UI).
 - WebSocket channels (Reverb) use signed, per-user channel authorisation — no open channels; consult rooms joinable only by their two participants + authorised staff.
 - Infra accounts (Cloudflare, registrar, hosting, Paystack dashboard) on hardware-key MFA; no shared logins.
