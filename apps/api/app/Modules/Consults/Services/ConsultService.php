@@ -42,8 +42,11 @@ class ConsultService
             $this->stateMachine->transition($consult, Consult::STATE_TRIAGED, $patient->user_id);
 
             if ($redFlag) {
+                // Emergencies are never gated behind payment.
                 $this->stateMachine->transition($consult, Consult::STATE_ESCALATED, $patient->user_id);
                 $this->systemMessage($consult, __('Your symptoms need urgent in-person care. Please go to the nearest hospital now. Our team has been alerted.'));
+            } elseif (config('pricing.payments_required')) {
+                $this->systemMessage($consult, __('Complete payment to join the queue — the fee is shown before you pay.'));
             } else {
                 $this->stateMachine->transition($consult, Consult::STATE_QUEUED, $patient->user_id);
                 $this->systemMessage($consult, __('You are in the queue. A doctor will be with you shortly — we will notify you.'));
@@ -51,6 +54,19 @@ class ConsultService
 
             return $consult->refresh();
         });
+    }
+
+    /** Called by the Payments module once the consult fee settles. */
+    public function queueAfterPayment(Consult $consult): Consult
+    {
+        if ($consult->state !== Consult::STATE_TRIAGED) {
+            return $consult; // already queued/escalated — settle() is idempotent upstream
+        }
+
+        $this->stateMachine->transition($consult, Consult::STATE_QUEUED, $consult->patient->user_id);
+        $this->systemMessage($consult, __('Payment received. You are in the queue — a doctor will be with you shortly.'));
+
+        return $consult->refresh();
     }
 
     /** Doctor accepts the oldest queued consult (or a specific one). */

@@ -48,6 +48,10 @@ class DoctorConsultController extends Controller
 
         $consult = $this->consults->conclude($consult, $request->user()->id);
 
+        // Credit the doctor's share of a paid consult (no-op when unpaid).
+        app(\App\Modules\Payments\Services\PaymentService::class)
+            ->creditDoctorForConcludedConsult($consult);
+
         return response()->json(['id' => $consult->id, 'state' => $consult->state]);
     }
 }

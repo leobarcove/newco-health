@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useMutation } from '@tanstack/react-query'
-import { api, type Consult } from '../../lib/api'
+import { api, ApiError, type Consult } from '../../lib/api'
 
 /** Red-flag screen first — emergencies must never sit in a queue (startup plan §10). */
 const RED_FLAG_QUESTIONS: { key: string; label: string }[] = [
@@ -14,6 +14,7 @@ const RED_FLAG_QUESTIONS: { key: string; label: string }[] = [
 export function IntakePage() {
   const [complaint, setComplaint] = useState('')
   const [flags, setFlags] = useState<Record<string, boolean>>({})
+  const [consentNeeded, setConsentNeeded] = useState(false)
   const navigate = useNavigate()
 
   const start = useMutation({
@@ -23,6 +24,21 @@ export function IntakePage() {
         body: JSON.stringify({ complaint, answers: flags }),
       }),
     onSuccess: (consult) => navigate(`/consult/${consult.id}`, { replace: true }),
+    onError: (e) => {
+      if (e instanceof ApiError && e.status === 428) setConsentNeeded(true)
+    },
+  })
+
+  const consent = useMutation({
+    mutationFn: () =>
+      api('/consents', {
+        method: 'POST',
+        body: JSON.stringify({ kind: 'telemedicine_terms', granted: true }),
+      }),
+    onSuccess: () => {
+      setConsentNeeded(false)
+      start.mutate()
+    },
   })
 
   return (
@@ -66,7 +82,24 @@ export function IntakePage() {
         {start.isPending ? 'Starting…' : 'See a doctor'}
       </button>
 
-      {start.isError && (
+      {consentNeeded && (
+        <div className="flex flex-col gap-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-base font-semibold text-slate-900">One thing before you see a doctor</p>
+          <p className="text-base text-slate-700">
+            Online consults have limits — for emergencies, go to a hospital. Your health information stays private
+            and is only shared with the doctor treating you. By continuing you agree to our telemedicine terms.
+          </p>
+          <button
+            onClick={() => consent.mutate()}
+            disabled={consent.isPending}
+            className="min-h-12 rounded-xl bg-emerald-600 text-base font-semibold text-white disabled:opacity-50"
+          >
+            {consent.isPending ? 'Saving…' : 'I agree — continue'}
+          </button>
+        </div>
+      )}
+
+      {start.isError && !consentNeeded && (
         <p className="rounded-xl bg-red-50 p-3 text-base text-red-700">
           We couldn't start your consult. You haven't been charged — please try again.
         </p>

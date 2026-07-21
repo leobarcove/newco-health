@@ -19,6 +19,13 @@ class AppServiceProvider extends ServiceProvider
                 ? new TermiiSmsSender()
                 : new LogSmsSender();
         });
+
+        // Real gateway activates the moment credentials exist; fake until then.
+        $this->app->bind(\App\Modules\Payments\Services\PaymentGateway::class, function () {
+            return config('services.paystack.secret')
+                ? new \App\Modules\Payments\Services\PaystackGateway()
+                : new \App\Modules\Payments\Services\FakeGateway();
+        });
     }
 
     public function boot(): void

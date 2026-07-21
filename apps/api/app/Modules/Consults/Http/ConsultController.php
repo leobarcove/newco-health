@@ -26,6 +26,16 @@ class ConsultController extends Controller
         $patient = $request->user()->patient;
         abort_if($patient === null, 403, 'Only patients can start consults.');
 
+        // NDPA/MDCN: explicit telemedicine consent before any clinical service.
+        $consents = app(\App\Modules\Compliance\Services\ConsentLedger::class);
+        if (! $consents->has($request->user(), \App\Modules\Compliance\Services\ConsentLedger::KIND_TELEMEDICINE_TERMS)) {
+            return response()->json([
+                'message' => __('Please review and accept the telemedicine terms before starting a consult.'),
+                'code' => 'consent_required',
+                'kind' => \App\Modules\Compliance\Services\ConsentLedger::KIND_TELEMEDICINE_TERMS,
+            ], 428);
+        }
+
         $consult = $this->consults->createFromIntake($patient, $data['complaint'], $data['answers'] ?? []);
 
         return response()->json($this->serialise($consult), 201);

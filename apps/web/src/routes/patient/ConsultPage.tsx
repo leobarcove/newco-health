@@ -1,9 +1,15 @@
 import { Link, useParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Consult } from '../../lib/api'
 import { Thread } from '../../features/consult/Thread'
 
 const LIVE_STATES = ['queued', 'assigned', 'in_consult', 'concluded']
+
+interface PaymentResult {
+  status: string
+  amount_display: string
+  checkout_url: string | null
+}
 
 export function ConsultPage() {
   const { id = '' } = useParams()
@@ -36,10 +42,47 @@ export function ConsultPage() {
         </div>
       </header>
 
+      {consult.state === 'triaged' && <PayPanel consultId={consult.id} />}
+
       <div className="min-h-0 flex-1">
         <Thread consultId={consult.id} live={LIVE_STATES.includes(consult.state)} />
       </div>
     </main>
+  )
+}
+
+/** Payment gate: price upfront, no surprises (design plan §6 money rules). */
+function PayPanel({ consultId }: { consultId: string }) {
+  const queryClient = useQueryClient()
+
+  const pay = useMutation({
+    mutationFn: () => api<PaymentResult>(`/consults/${consultId}/pay`, { method: 'POST' }),
+    onSuccess: (payment) => {
+      if (payment.checkout_url) {
+        window.location.assign(payment.checkout_url) // real gateway redirect
+      } else {
+        void queryClient.invalidateQueries({ queryKey: ['consult', consultId] })
+        void queryClient.invalidateQueries({ queryKey: ['messages', consultId] })
+      }
+    },
+  })
+
+  return (
+    <div className="border-b border-amber-200 bg-amber-50 p-4">
+      <p className="mb-2 text-base text-amber-900">
+        Consult fee: <strong>₦2,500</strong> — pay by card, transfer, or USSD. You only pay once per consult.
+      </p>
+      <button
+        onClick={() => pay.mutate()}
+        disabled={pay.isPending}
+        className="min-h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white disabled:opacity-50"
+      >
+        {pay.isPending ? 'Starting payment…' : 'Pay and join the queue'}
+      </button>
+      {pay.isError && (
+        <p className="mt-2 text-sm text-red-700">Payment didn't start. You haven't been charged — try again.</p>
+      )}
+    </div>
   )
 }
 
