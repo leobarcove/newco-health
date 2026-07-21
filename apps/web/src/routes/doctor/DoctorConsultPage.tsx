@@ -3,11 +3,12 @@ import { Link, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Consult } from '../../lib/api'
 import { NotesPanel } from '../../features/consult/NotesPanel'
+import { PrescribePanel } from '../../features/consult/PrescribePanel'
 import { Thread } from '../../features/consult/Thread'
 
 export function DoctorConsultPage() {
   const { id = '' } = useParams()
-  const [showNotes, setShowNotes] = useState(false)
+  const [panel, setPanel] = useState<'none' | 'notes' | 'prescribe'>('none')
   const queryClient = useQueryClient()
 
   const { data: consult } = useQuery({
@@ -32,14 +33,17 @@ export function DoctorConsultPage() {
           <h1 className="text-base font-semibold text-slate-900">Consult</h1>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowNotes(!showNotes)}
-            className={`min-h-10 rounded-lg border px-4 text-sm font-semibold ${
-              showNotes ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 text-slate-700'
-            }`}
-          >
-            Notes
-          </button>
+          {(['notes', 'prescribe'] as const).map((name) => (
+            <button
+              key={name}
+              onClick={() => setPanel(panel === name ? 'none' : name)}
+              className={`min-h-10 rounded-lg border px-4 text-sm font-semibold capitalize ${
+                panel === name ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 text-slate-700'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
           {consult.state === 'in_consult' && (
             <button
               onClick={() => conclude.mutate()}
@@ -56,9 +60,9 @@ export function DoctorConsultPage() {
         <div className="min-h-0 min-w-0 flex-1">
           <Thread consultId={consult.id} live={consult.state === 'in_consult' || consult.state === 'concluded'} />
         </div>
-        {showNotes && (
+        {panel !== 'none' && (
           <aside className="w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white">
-            <NotesPanel consultId={consult.id} />
+            {panel === 'notes' ? <NotesPanel consultId={consult.id} /> : <PrescribePanel consultId={consult.id} />}
           </aside>
         )}
       </div>

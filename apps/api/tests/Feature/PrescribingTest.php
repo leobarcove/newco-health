@@ -80,7 +80,7 @@ it('refuses to prescribe outside a live or just-concluded consult', function () 
         ->postJson("/api/doctor/consults/{$consult->id}/prescriptions", [
             'items' => [['formulary_item_id' => $medicine->id, 'dosage' => '1 daily', 'duration_days' => 5]],
         ])
-        ->assertStatus(500); // DomainException — mapped to 422 with a handler later
+        ->assertStatus(422); // DomainException → 422
 });
 
 it('lets the patient view their own prescription but not others', function () {

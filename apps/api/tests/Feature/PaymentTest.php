@@ -51,7 +51,7 @@ it('is idempotent: paying twice creates one payment and one queue transition', f
         ->json('id');
 
     $first = $this->actingAs($patient->user)->postJson("/api/consults/{$consultId}/pay")->json('reference');
-    $this->actingAs($patient->user)->postJson("/api/consults/{$consultId}/pay")->assertStatus(500); // already queued
+    $this->actingAs($patient->user)->postJson("/api/consults/{$consultId}/pay")->assertStatus(422); // already queued — not payable again
 
     expect(Payment::where('consult_id', $consultId)->count())->toBe(1)
         ->and(Payment::where('reference', $first)->first()->status)->toBe(Payment::STATUS_SUCCEEDED);

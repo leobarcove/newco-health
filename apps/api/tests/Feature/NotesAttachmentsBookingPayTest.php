@@ -134,7 +134,7 @@ it('holds a booked slot pending payment, then confirms on payment', function () 
     // The unpaid hold still blocks the slot for everyone else.
     $this->actingAs($rival->user)
         ->postJson('/api/bookings', ['doctor_id' => $doctor->id, 'starts_at' => $slot])
-        ->assertStatus(500);
+        ->assertStatus(422);
 
     $this->actingAs($patient->user)
         ->postJson("/api/bookings/{$bookingId}/pay")

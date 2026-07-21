@@ -94,7 +94,7 @@ it('refuses acceptance by a doctor with an expired licence', function () {
 
     $this->actingAs($doctor->user)
         ->postJson("/api/doctor/consults/{$consultId}/accept")
-        ->assertStatus(500); // DomainException — refined to 422 with a handler in sprint 2
+        ->assertStatus(422); // DomainException → 422 with the doctor-facing message
 
     expect(Consult::find($consultId)->state)->toBe(Consult::STATE_QUEUED);
 });

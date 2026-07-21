@@ -86,7 +86,7 @@ it('refuses to double-book the same slot', function () {
 
     $this->actingAs($second->user)
         ->postJson('/api/bookings', ['doctor_id' => $doctor->id, 'starts_at' => $slot])
-        ->assertStatus(500); // DomainException: slot no longer available
+        ->assertStatus(422); // slot no longer available
 
     expect(Booking::where('doctor_id', $doctor->id)->where('state', 'confirmed')->count())->toBe(1);
 });
@@ -100,7 +100,7 @@ it('rejects times that were never offered slots', function () {
             'doctor_id' => $doctor->id,
             'starts_at' => nextMondayAt('09:10')->toIso8601String(), // off-grid time
         ])
-        ->assertStatus(500);
+        ->assertStatus(422);
 
     expect(Booking::count())->toBe(0);
 });
@@ -169,7 +169,7 @@ it('lets a patient cancel outside the cutoff but not inside it', function () {
         ->assertOk()->assertJsonPath('state', 'cancelled');
 
     $this->actingAs($patient->user)->postJson("/api/bookings/{$near->id}/cancel")
-        ->assertStatus(500);
+        ->assertStatus(422);
     expect($near->refresh()->state)->toBe(Booking::STATE_CONFIRMED);
 });
 
@@ -244,7 +244,7 @@ it('refuses to begin a booked consult far outside its window', function () {
 
     $this->actingAs($booking->doctor->user)
         ->postJson("/api/doctor/bookings/{$booking->id}/begin")
-        ->assertStatus(500);
+        ->assertStatus(422);
 
     expect($booking->refresh()->state)->toBe(Booking::STATE_CONFIRMED);
 });
@@ -258,7 +258,7 @@ it('refuses begin by a different doctor than the one booked', function () {
 
     $this->actingAs($otherDoctor->user)
         ->postJson("/api/doctor/bookings/{$booking->id}/begin")
-        ->assertStatus(500);
+        ->assertStatus(422);
 });
 
 it('replaces the weekly availability template wholesale', function () {
