@@ -4,6 +4,7 @@ use App\Modules\Consults\Http\ConsultController;
 use App\Modules\Consults\Http\DoctorConsultController;
 use App\Modules\Consults\Http\MessageController;
 use App\Modules\Identity\Http\AuthController;
+use App\Modules\Prescribing\Http\PrescriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -25,4 +26,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('doctor/queue', [DoctorConsultController::class, 'queue']);
     Route::post('doctor/consults/{consult}/accept', [DoctorConsultController::class, 'accept']);
     Route::post('doctor/consults/{consult}/conclude', [DoctorConsultController::class, 'conclude']);
+
+    // Prescribing
+    Route::get('formulary', [PrescriptionController::class, 'formulary']);
+    Route::post('doctor/consults/{consult}/prescriptions', [PrescriptionController::class, 'store']);
+    Route::get('prescriptions/{prescription}', [PrescriptionController::class, 'show']);
 });

@@ -7,13 +7,15 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'phone', 'role', 'locale'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -49,5 +51,11 @@ class User extends Authenticatable
     public function isPatient(): bool
     {
         return $this->role === self::ROLE_PATIENT;
+    }
+
+    /** The backoffice is staff-only (ADR-002); doctors use the SPA console. */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->role === self::ROLE_STAFF;
     }
 }

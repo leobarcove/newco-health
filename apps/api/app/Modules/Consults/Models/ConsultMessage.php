@@ -26,6 +26,15 @@ class ConsultMessage extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Every message — human, system, prescription — notifies the thread's
+        // subscribers. Single hook so no creation site can forget to broadcast.
+        static::created(function (self $message) {
+            \App\Modules\Consults\Events\ConsultMessageSent::dispatch($message);
+        });
+    }
+
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');

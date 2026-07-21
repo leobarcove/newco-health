@@ -1,22 +1,46 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Message } from '../../lib/api'
+import { echo } from '../../lib/echo'
+import { PrescriptionCard } from './PrescriptionCard'
 
 /**
  * The consult thread — the canonical clinical surface (design plan §4.1).
- * WhatsApp-familiar; polls while the consult is live. Replaced by Reverb
- * WebSockets in sprint 3b without changing this component's shape.
+ * WhatsApp-familiar. Live updates arrive over Reverb websockets; a slow
+ * poll stays on as the fallback rung — on networks where the socket can't
+ * hold, the thread still works (the low-bandwidth ladder, dev plan §6).
  */
 export function Thread({ consultId, live }: { consultId: string; live: boolean }) {
   const [draft, setDraft] = useState('')
+  const [socketUp, setSocketUp] = useState(false)
   const bottom = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', consultId],
     queryFn: () => api<Message[]>(`/consults/${consultId}/messages`),
-    refetchInterval: live ? 3000 : false,
+    // Socket healthy → gentle 30s safety poll; socket down → 3s fallback poll.
+    refetchInterval: live ? (socketUp ? 30000 : 3000) : false,
   })
+
+  useEffect(() => {
+    if (!live) return
+
+    const channel = echo()
+      .private(`consult.${consultId}`)
+      .listen('.message.sent', () => {
+        // Frames carry the id only (no PHI on the wire) — refetch via REST.
+        void queryClient.invalidateQueries({ queryKey: ['messages', consultId] })
+      })
+      .subscribed(() => setSocketUp(true))
+      .error(() => setSocketUp(false))
+
+    return () => {
+      channel.stopListening('.message.sent')
+      echo().leave(`consult.${consultId}`)
+      setSocketUp(false)
+    }
+  }, [consultId, live, queryClient])
 
   const send = useMutation({
     mutationFn: (body: string) => api(`/consults/${consultId}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
@@ -35,6 +59,8 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
             <p key={m.id} className="mx-auto max-w-xs rounded-lg bg-slate-100 px-3 py-2 text-center text-sm text-slate-600">
               {m.body}
             </p>
+          ) : m.kind === 'prescription' ? (
+            <PrescriptionCard key={m.id} prescriptionId={m.body} />
           ) : (
             <div key={m.id} className={m.mine ? 'flex justify-end' : 'flex justify-start'}>
               <p
