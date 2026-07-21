@@ -105,6 +105,12 @@ class SponsorshipService
         );
     }
 
+    /** Same, for a chronic-care programme month. */
+    public function tryCoverEnrolment(\App\Modules\Programmes\Models\ProgrammeEnrolment $enrolment, int $feeKobo): ?Payment
+    {
+        return $this->tryCover($enrolment->patient_id, $feeKobo, ['programme', 'programme_enrolment_id', $enrolment->id]);
+    }
+
     /** Same, for a booked appointment awaiting payment. */
     public function tryCoverBooking(\App\Modules\Scheduling\Models\Booking $booking): ?Payment
     {

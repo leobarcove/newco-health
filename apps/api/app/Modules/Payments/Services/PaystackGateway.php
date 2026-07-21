@@ -65,4 +65,18 @@ class PaystackGateway implements PaymentGateway
 
         return $response->successful();
     }
+
+    public function transfer(int $amountKobo, string $reference, string $recipientCode): bool
+    {
+        $response = Http::withToken(config('services.paystack.secret'))
+            ->post('https://api.paystack.co/transfer', [
+                'source' => 'balance',
+                'amount' => $amountKobo,
+                'reference' => $reference,
+                'recipient' => $recipientCode,
+                'reason' => 'NewCo Health weekly consult payout',
+            ]);
+
+        return $response->successful();
+    }
 }

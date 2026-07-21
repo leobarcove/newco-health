@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         __DIR__.'/../app/Modules/Scheduling/Console',
         __DIR__.'/../app/Modules/Prescribing/Console',
+        __DIR__.'/../app/Modules/Consults/Console',
+        __DIR__.'/../app/Modules/Payouts/Console',
+        __DIR__.'/../app/Modules/Programmes/Console',
     ])
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',

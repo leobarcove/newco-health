@@ -62,6 +62,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->
         ->middleware('phi.log:data_subject.export');
     Route::post('me/erase', [\App\Modules\Compliance\Http\DataSubjectController::class, 'erase']);
 
+    // Chronic-care programmes
+    Route::get('programmes', [\App\Modules\Programmes\Http\ProgrammeController::class, 'index']);
+    Route::post('programmes/{programme}/enrol', [\App\Modules\Programmes\Http\ProgrammeController::class, 'enrol']);
+    Route::post('programme-enrolments/{enrolment}/cancel', [\App\Modules\Programmes\Http\ProgrammeController::class, 'cancel']);
+
     // Sponsor portal
     Route::get('sponsor/overview', [\App\Modules\Patients\Http\SponsorController::class, 'overview']);
     Route::post('sponsor/beneficiaries', [\App\Modules\Patients\Http\SponsorController::class, 'invite']);

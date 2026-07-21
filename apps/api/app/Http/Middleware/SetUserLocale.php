@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SetUserLocale
 {
-    public const SUPPORTED = ['en', 'pcm'];
+    public const SUPPORTED = ['en', 'pcm', 'ha'];
 
     public function handle(Request $request, Closure $next): Response
     {

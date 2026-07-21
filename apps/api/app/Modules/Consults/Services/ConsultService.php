@@ -47,12 +47,20 @@ class ConsultService
                 $this->stateMachine->transition($consult, Consult::STATE_ESCALATED, $patient->user_id);
                 $this->systemMessage($consult, __('Your symptoms need urgent in-person care. Please go to the nearest hospital now. Our team has been alerted.'));
             } elseif (config('pricing.payments_required')) {
-                // An active sponsor's wallet may cover the fee silently.
-                $covered = app(\App\Modules\Patients\Services\SponsorshipService::class)->tryCoverConsult($consult);
+                // Cover order: employer/HMO float → sponsor wallet → self-pay.
+                $covered = app(\App\Modules\Patients\Services\OrganisationCoverService::class)->tryCover(
+                    $patient,
+                    (int) config('pricing.consult_price_kobo'),
+                    \App\Modules\Payments\Models\Payment::PURPOSE_CONSULT,
+                    'consult_id',
+                    $consult->id,
+                ) ?? app(\App\Modules\Patients\Services\SponsorshipService::class)->tryCoverConsult($consult);
 
                 if ($covered !== null) {
                     $this->stateMachine->transition($consult, Consult::STATE_QUEUED, $patient->user_id);
-                    $this->systemMessage($consult, __('This consult is covered by your sponsor. You are in the queue — a doctor will be with you shortly.'));
+                    $this->systemMessage($consult, $covered->gateway === 'organisation'
+                        ? __("This consult is covered by your employer's health plan. You are in the queue — a doctor will be with you shortly.")
+                        : __('This consult is covered by your sponsor. You are in the queue — a doctor will be with you shortly.'));
                 } else {
                     $this->systemMessage($consult, __('Complete payment to join the queue — the fee is shown before you pay.'));
                 }

@@ -42,4 +42,9 @@ class FakeGateway implements PaymentGateway
     {
         return true;
     }
+
+    public function transfer(int $amountKobo, string $reference, string $recipientCode): bool
+    {
+        return true;
+    }
 }

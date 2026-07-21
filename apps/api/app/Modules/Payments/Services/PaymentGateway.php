@@ -31,4 +31,7 @@ interface PaymentGateway
 
     /** Refund a settled payment at the provider. Returns success. */
     public function refund(Payment $payment): bool;
+
+    /** Send money out (doctor payouts). Returns success. */
+    public function transfer(int $amountKobo, string $reference, string $recipientCode): bool;
 }
