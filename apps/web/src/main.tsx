@@ -17,6 +17,9 @@ const BookAppointmentPage = lazy(() =>
 const AppointmentsPage = lazy(() =>
   import('./routes/patient/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })),
 )
+const ProgrammesPage = lazy(() =>
+  import('./routes/patient/ProgrammesPage').then((m) => ({ default: m.ProgrammesPage })),
+)
 const QueuePage = lazy(() => import('./routes/doctor/QueuePage').then((m) => ({ default: m.QueuePage })))
 const DoctorConsultPage = lazy(() =>
   import('./routes/doctor/DoctorConsultPage').then((m) => ({ default: m.DoctorConsultPage })),
@@ -51,6 +54,7 @@ const router = createBrowserRouter([
   { path: '/consult/:id', element: <RequireAuth><ConsultPage /></RequireAuth> },
   { path: '/book', element: <RequireAuth><BookAppointmentPage /></RequireAuth> },
   { path: '/appointments', element: <RequireAuth><AppointmentsPage /></RequireAuth> },
+  { path: '/programmes', element: <RequireAuth><ProgrammesPage /></RequireAuth> },
   { path: '/doctor', element: <RequireAuth><QueuePage /></RequireAuth> },
   { path: '/doctor/consult/:id', element: <RequireAuth><DoctorConsultPage /></RequireAuth> },
   { path: '/doctor/agenda', element: <RequireAuth><AgendaPage /></RequireAuth> },

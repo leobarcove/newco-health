@@ -93,25 +93,49 @@ export function HomePage() {
           </span>
         </Link>
 
-        {/* Secondary: book ahead */}
-        <Link
-          to="/book"
-          className="group flex items-center gap-4 rounded-3xl border border-slate-900/8 bg-white p-5 shadow-xs transition hover:border-emerald-600/40"
-        >
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-600/10 text-emerald-700">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-6" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-          </span>
-          <span className="flex-1">
-            <span className="block text-base font-semibold text-slate-900">Book an appointment</span>
-            <span className="mt-0.5 block text-sm text-slate-500">Pick a doctor and a time that suits you</span>
-          </span>
-          <span className="text-xl text-slate-300 transition group-hover:translate-x-1 group-hover:text-emerald-600" aria-hidden="true">
-            →
-          </span>
-        </Link>
+        {/* Secondary actions */}
+        {[
+          {
+            to: '/book',
+            title: 'Book an appointment',
+            sub: 'Pick a doctor and a time that suits you',
+            icon: (
+              <>
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </>
+            ),
+          },
+          {
+            to: '/programmes',
+            title: 'Care programmes',
+            sub: 'Ongoing check-ins for blood pressure & diabetes',
+            icon: (
+              <>
+                <path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 1 1 7.5-6.6 5 5 0 1 1 7.5 6.6Z" />
+              </>
+            ),
+          },
+        ].map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className="group flex items-center gap-4 rounded-3xl border border-slate-900/8 bg-white p-5 shadow-xs transition hover:border-emerald-600/40"
+          >
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-600/10 text-emerald-700">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-6" aria-hidden="true">
+                {item.icon}
+              </svg>
+            </span>
+            <span className="flex-1">
+              <span className="block text-base font-semibold text-slate-900">{item.title}</span>
+              <span className="mt-0.5 block text-sm text-slate-500">{item.sub}</span>
+            </span>
+            <span className="text-xl text-slate-300 transition group-hover:translate-x-1 group-hover:text-emerald-600" aria-hidden="true">
+              →
+            </span>
+          </Link>
+        ))}
 
         <p className="mt-2 text-center text-xs leading-relaxed text-slate-400">
           Licensed Nigerian doctors · Available every day
