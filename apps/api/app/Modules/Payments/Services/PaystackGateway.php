@@ -57,4 +57,12 @@ class PaystackGateway implements PaymentGateway
 
         return [];
     }
+
+    public function refund(Payment $payment): bool
+    {
+        $response = Http::withToken(config('services.paystack.secret'))
+            ->post('https://api.paystack.co/refund', ['transaction' => $payment->reference]);
+
+        return $response->successful();
+    }
 }

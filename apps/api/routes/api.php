@@ -20,6 +20,7 @@ Route::prefix('auth')->group(function () {
     Route::post('otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:20,1');
     Route::post('sponsor/register', [\App\Modules\Patients\Http\SponsorController::class, 'register'])->middleware('throttle:10,1');
     Route::post('sponsor/login', [\App\Modules\Patients\Http\SponsorController::class, 'login'])->middleware('throttle:20,1');
+    Route::post('pharmacy/login', [\App\Modules\Prescribing\Http\PharmacyPortalController::class, 'login'])->middleware('throttle:20,1');
 });
 
 Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->group(function () {
@@ -50,6 +51,16 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->
     // Sponsorships (patient side)
     Route::get('sponsorships', [\App\Modules\Patients\Http\SponsorshipController::class, 'index']);
     Route::post('sponsorships/{sponsorship}/respond', [\App\Modules\Patients\Http\SponsorshipController::class, 'respond']);
+
+    // Pharmacy portal
+    Route::get('pharmacy/prescriptions/{code}', [\App\Modules\Prescribing\Http\PharmacyPortalController::class, 'lookup'])
+        ->middleware('phi.log:prescription.pharmacy_lookup');
+    Route::post('pharmacy/dispense', [\App\Modules\Prescribing\Http\PharmacyPortalController::class, 'dispense']);
+
+    // NDPA data-subject rights
+    Route::get('me/data-export', [\App\Modules\Compliance\Http\DataSubjectController::class, 'export'])
+        ->middleware('phi.log:data_subject.export');
+    Route::post('me/erase', [\App\Modules\Compliance\Http\DataSubjectController::class, 'erase']);
 
     // Sponsor portal
     Route::get('sponsor/overview', [\App\Modules\Patients\Http\SponsorController::class, 'overview']);

@@ -28,4 +28,7 @@ interface PaymentGateway
 
     /** Extract [reference, status] pairs from a verified webhook payload. */
     public function webhookEvents(array $payload): array;
+
+    /** Refund a settled payment at the provider. Returns success. */
+    public function refund(Payment $payment): bool;
 }

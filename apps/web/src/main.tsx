@@ -32,6 +32,12 @@ const AvailabilityPage = lazy(() =>
   import('./routes/doctor/AvailabilityPage').then((m) => ({ default: m.AvailabilityPage })),
 )
 const EarningsPage = lazy(() => import('./routes/doctor/EarningsPage').then((m) => ({ default: m.EarningsPage })))
+const PharmacyLoginPage = lazy(() =>
+  import('./routes/pharmacy/PharmacyLoginPage').then((m) => ({ default: m.PharmacyLoginPage })),
+)
+const PharmacyPortalPage = lazy(() =>
+  import('./routes/pharmacy/PharmacyPortalPage').then((m) => ({ default: m.PharmacyPortalPage })),
+)
 
 function RequireAuth({ children }: { children: ReactNode }) {
   if (getToken() === null) return <Navigate to="/login" replace />
@@ -52,6 +58,8 @@ const router = createBrowserRouter([
   { path: '/doctor/earnings', element: <RequireAuth><EarningsPage /></RequireAuth> },
   { path: '/sponsor/login', element: <SponsorLoginPage /> },
   { path: '/sponsor', element: <RequireAuth><SponsorDashboardPage /></RequireAuth> },
+  { path: '/pharmacy/login', element: <PharmacyLoginPage /> },
+  { path: '/pharmacy', element: <RequireAuth><PharmacyPortalPage /></RequireAuth> },
 ])
 
 const queryClient = new QueryClient({

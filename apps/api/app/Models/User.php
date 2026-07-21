@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'phone', 'role', 'locale'])]
+#[Fillable(['name', 'email', 'password', 'phone', 'role', 'locale', 'pharmacy_id', 'erased_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -24,6 +24,7 @@ class User extends Authenticatable implements FilamentUser
     public const ROLE_DOCTOR = 'doctor';
     public const ROLE_SPONSOR = 'sponsor';
     public const ROLE_STAFF = 'staff';
+    public const ROLE_PHARMACY = 'pharmacy';
 
     protected function casts(): array
     {

@@ -166,6 +166,51 @@ class PaymentService
         return $handled;
     }
 
+    /**
+     * Staff refund. Wallet-sponsored payments return to the sponsor's wallet;
+     * gateway payments refund at the provider. Refunding a not-yet-seen
+     * consult abandons it; refunding a booking cancels it (staff bypass).
+     */
+    public function refund(Payment $payment, int $actorId, string $reason): Payment
+    {
+        if ($payment->status !== Payment::STATUS_SUCCEEDED) {
+            throw new DomainException('Only settled payments can be refunded.');
+        }
+
+        return DB::transaction(function () use ($payment, $actorId, $reason) {
+            $payment = Payment::where('id', $payment->id)->lockForUpdate()->first();
+            if ($payment->status !== Payment::STATUS_SUCCEEDED) {
+                return $payment; // raced — already refunded
+            }
+
+            if ($payment->gateway === 'wallet') {
+                app(\App\Modules\Payments\Services\WalletService::class)
+                    ->credit($payment->user, $payment->amount_kobo, "refund:{$payment->reference}");
+            } elseif (! $this->gateway->refund($payment)) {
+                throw new DomainException('The payment provider rejected the refund.');
+            }
+
+            $payment->update(['status' => Payment::STATUS_REFUNDED, 'meta' => [...($payment->meta ?? []), 'refund_reason' => $reason]]);
+            $this->audit->record($payment, 'payment.refunded', $actorId, ['reason' => $reason]);
+
+            // Unwind whatever the payment was buying, where that still makes sense.
+            if ($payment->purpose === Payment::PURPOSE_CONSULT && $payment->consult !== null) {
+                $consult = $payment->consult;
+                if (in_array($consult->state, [\App\Modules\Consults\Models\Consult::STATE_TRIAGED, \App\Modules\Consults\Models\Consult::STATE_QUEUED], true)) {
+                    app(\App\Modules\Consults\Services\ConsultStateMachine::class)
+                        ->transition($consult, \App\Modules\Consults\Models\Consult::STATE_ABANDONED, $actorId);
+                }
+            } elseif ($payment->purpose === Payment::PURPOSE_BOOKING && $payment->booking_id !== null) {
+                $booking = \App\Modules\Scheduling\Models\Booking::find($payment->booking_id);
+                if ($booking !== null && in_array($booking->state, \App\Modules\Scheduling\Models\Booking::SLOT_HOLDING_STATES, true)) {
+                    app(\App\Modules\Scheduling\Services\BookingService::class)->cancel($booking, 'staff', $actorId);
+                }
+            }
+
+            return $payment->refresh();
+        });
+    }
+
     /** Credit the doctor's share once a paid consult concludes. */
     public function creditDoctorForConcludedConsult(Consult $consult): void
     {

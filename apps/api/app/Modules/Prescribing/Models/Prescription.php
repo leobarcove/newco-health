@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['consult_id', 'doctor_id', 'patient_id', 'status', 'pickup_code', 'dispensed_at'])]
+#[Fillable(['consult_id', 'doctor_id', 'patient_id', 'pharmacy_id', 'status', 'pickup_code', 'dispensed_at'])]
 class Prescription extends Model
 {
     use HasUlids;

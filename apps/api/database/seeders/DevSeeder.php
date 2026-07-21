@@ -129,6 +129,16 @@ class DevSeeder extends Seeder
             'kind' => ConsultMessage::KIND_PRESCRIPTION, 'body' => $prescription->id,
         ]);
 
+        // — A pharmacy with a counter login (pharmacy@newco.local / pharmacypass) —
+        $pharmacy = \App\Modules\Prescribing\Models\Pharmacy::firstOrCreate(
+            ['pcn_licence_no' => 'PCN/DEV001'],
+            ['name' => 'HealthPlus Yaba', 'phone' => '+2348044444444', 'address' => '23 Herbert Macaulay Way, Yaba', 'status' => 'active'],
+        );
+        User::firstOrCreate(
+            ['email' => 'pharmacy@newco.local'],
+            ['name' => 'HealthPlus Yaba counter', 'role' => User::ROLE_PHARMACY, 'pharmacy_id' => $pharmacy->id, 'password' => Hash::make('pharmacypass')],
+        );
+
         // — An upcoming confirmed booking: Bisi with Dr Tunde —
         $slot = now()->addDay()->setTime(9, 0); // 10:00 Lagos
         Booking::create([

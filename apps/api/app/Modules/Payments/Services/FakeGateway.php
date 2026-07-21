@@ -37,4 +37,9 @@ class FakeGateway implements PaymentGateway
     {
         return [[$payload['data']['reference'] ?? '', Payment::STATUS_SUCCEEDED]];
     }
+
+    public function refund(Payment $payment): bool
+    {
+        return true;
+    }
 }

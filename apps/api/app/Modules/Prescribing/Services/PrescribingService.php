@@ -75,19 +75,28 @@ class PrescribingService
         });
     }
 
-    /** Pharmacy-facing: mark dispensed against a valid pickup code. */
-    public function dispense(string $pickupCode, ?int $actorId = null): Prescription
+    /** Pharmacist looks a code up before dispensing — minimal PHI (first name only). */
+    public function lookup(string $pickupCode): Prescription
     {
-        $prescription = Prescription::where('pickup_code', $pickupCode)
+        return Prescription::where('pickup_code', strtoupper(trim($pickupCode)))
+            ->with('items.formularyItem', 'patient.user', 'doctor.user')
+            ->firstOrFail();
+    }
+
+    /** Pharmacy-facing: mark dispensed against a valid pickup code. */
+    public function dispense(string $pickupCode, ?int $actorId = null, ?string $pharmacyId = null): Prescription
+    {
+        $prescription = Prescription::where('pickup_code', strtoupper(trim($pickupCode)))
             ->where('status', Prescription::STATUS_ISSUED)
             ->firstOrFail();
 
         $prescription->update([
             'status' => Prescription::STATUS_DISPENSED,
             'dispensed_at' => now(),
+            'pharmacy_id' => $pharmacyId,
         ]);
 
-        $this->audit->record($prescription, 'prescription.dispensed', $actorId);
+        $this->audit->record($prescription, 'prescription.dispensed', $actorId, ['pharmacy_id' => $pharmacyId]);
 
         return $prescription;
     }

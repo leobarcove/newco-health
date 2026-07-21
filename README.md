@@ -54,6 +54,7 @@ make test        # Pest + web build     ·  make e2e  # Playwright journey
 | Doctor **Amara** | `+234 809 999 9991` + code `000000` | Mid-consult with Bisi, SOAP note started, Mon–Fri availability |
 | Doctor **Tunde** | `+234 809 999 9992` + code `000000` | Free — sees Chuka in the queue; tomorrow's booking with Bisi |
 | Sponsor | `sponsor@newco.local` / `sponsorpass` (via /sponsor/login) | ₦10,000 wallet, "Mum" (Bisi) as active beneficiary |
+| Pharmacy | `pharmacy@newco.local` / `pharmacypass` (via /pharmacy/login) | Counter portal — look up `RX-SAMPLE23` and dispense |
 | Staff | `admin@newco.local` / `password` at `/admin` | Filament backoffice: consults board, credentialing, compliance console |
 
 The fixed OTP works because `.env` sets `OTP_TEST_CODE=000000` — the bypass is hard-disabled in production builds.
