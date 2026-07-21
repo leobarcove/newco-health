@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['patient_id', 'doctor_id', 'triage_intake_id', 'state', 'modality', 'daily_room', 'queued_at', 'assigned_at', 'concluded_at'])]
+#[Fillable(['patient_id', 'dependant_id', 'doctor_id', 'triage_intake_id', 'state', 'modality', 'daily_room', 'queued_at', 'assigned_at', 'concluded_at'])]
 class Consult extends Model
 {
     use HasFactory, HasUlids;

@@ -15,6 +15,7 @@ class Payment extends Model
     use HasUlids;
 
     public const PURPOSE_CONSULT = 'consult';
+    public const PURPOSE_WALLET_TOPUP = 'wallet_topup';
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_SUCCEEDED = 'succeeded';

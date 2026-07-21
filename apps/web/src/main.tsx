@@ -21,6 +21,12 @@ const QueuePage = lazy(() => import('./routes/doctor/QueuePage').then((m) => ({ 
 const DoctorConsultPage = lazy(() =>
   import('./routes/doctor/DoctorConsultPage').then((m) => ({ default: m.DoctorConsultPage })),
 )
+const SponsorLoginPage = lazy(() =>
+  import('./routes/sponsor/SponsorLoginPage').then((m) => ({ default: m.SponsorLoginPage })),
+)
+const SponsorDashboardPage = lazy(() =>
+  import('./routes/sponsor/SponsorDashboardPage').then((m) => ({ default: m.SponsorDashboardPage })),
+)
 const AgendaPage = lazy(() => import('./routes/doctor/AgendaPage').then((m) => ({ default: m.AgendaPage })))
 const AvailabilityPage = lazy(() =>
   import('./routes/doctor/AvailabilityPage').then((m) => ({ default: m.AvailabilityPage })),
@@ -42,6 +48,8 @@ const router = createBrowserRouter([
   { path: '/doctor/consult/:id', element: <RequireAuth><DoctorConsultPage /></RequireAuth> },
   { path: '/doctor/agenda', element: <RequireAuth><AgendaPage /></RequireAuth> },
   { path: '/doctor/availability', element: <RequireAuth><AvailabilityPage /></RequireAuth> },
+  { path: '/sponsor/login', element: <SponsorLoginPage /> },
+  { path: '/sponsor', element: <RequireAuth><SponsorDashboardPage /></RequireAuth> },
 ])
 
 const queryClient = new QueryClient({

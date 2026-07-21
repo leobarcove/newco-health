@@ -18,6 +18,8 @@ Route::post('webhooks/paystack', [WebhookController::class, 'paystack']);
 Route::prefix('auth')->group(function () {
     Route::post('otp/request', [AuthController::class, 'requestOtp'])->middleware('throttle:10,1');
     Route::post('otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:20,1');
+    Route::post('sponsor/register', [\App\Modules\Patients\Http\SponsorController::class, 'register'])->middleware('throttle:10,1');
+    Route::post('sponsor/login', [\App\Modules\Patients\Http\SponsorController::class, 'login'])->middleware('throttle:20,1');
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -35,6 +37,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // Consents (NDPA ledger)
     Route::get('consents', [\App\Modules\Compliance\Http\ConsentController::class, 'index']);
     Route::post('consents', [\App\Modules\Compliance\Http\ConsentController::class, 'store']);
+
+    // Dependants
+    Route::get('dependants', [\App\Modules\Patients\Http\DependantController::class, 'index']);
+    Route::post('dependants', [\App\Modules\Patients\Http\DependantController::class, 'store']);
+    Route::delete('dependants/{dependant}', [\App\Modules\Patients\Http\DependantController::class, 'destroy']);
+
+    // Sponsorships (patient side)
+    Route::get('sponsorships', [\App\Modules\Patients\Http\SponsorshipController::class, 'index']);
+    Route::post('sponsorships/{sponsorship}/respond', [\App\Modules\Patients\Http\SponsorshipController::class, 'respond']);
+
+    // Sponsor portal
+    Route::get('sponsor/overview', [\App\Modules\Patients\Http\SponsorController::class, 'overview']);
+    Route::post('sponsor/beneficiaries', [\App\Modules\Patients\Http\SponsorController::class, 'invite']);
+    Route::post('sponsor/wallet/topup', [\App\Modules\Patients\Http\SponsorController::class, 'topUp']);
 
     // Doctor
     Route::get('doctor/queue', [DoctorConsultController::class, 'queue']);

@@ -57,6 +57,28 @@ class PaymentService
         return $payment->refresh();
     }
 
+    /** Sponsor tops up their care wallet by an amount of their choosing. */
+    public function topUpWallet(\App\Models\User $user, int $amountKobo): Payment
+    {
+        $payment = Payment::create([
+            'user_id' => $user->id,
+            'purpose' => Payment::PURPOSE_WALLET_TOPUP,
+            'amount_kobo' => $amountKobo,
+            'currency' => 'NGN',
+            'gateway' => $this->gateway->name(),
+            'reference' => 'PAY-'.Str::ulid(),
+        ]);
+
+        $checkout = $this->gateway->initialise($payment);
+        $payment->update(['meta' => ['checkout_url' => $checkout['checkout_url']]]);
+
+        if ($checkout['checkout_url'] === null) {
+            $this->settle($payment->reference, $this->gateway->verify($payment));
+        }
+
+        return $payment->refresh();
+    }
+
     /**
      * Settle a payment by reference — the single entry point used by webhooks,
      * verify polling, and synchronous gateways. Idempotent by design: a payment
@@ -77,6 +99,9 @@ class PaymentService
 
                 if ($payment->purpose === Payment::PURPOSE_CONSULT && $payment->consult !== null) {
                     $this->consults->queueAfterPayment($payment->consult);
+                } elseif ($payment->purpose === Payment::PURPOSE_WALLET_TOPUP) {
+                    app(\App\Modules\Payments\Services\WalletService::class)
+                        ->credit($payment->user, $payment->amount_kobo, "topup:{$payment->reference}");
                 }
             } elseif ($status === Payment::STATUS_FAILED) {
                 $payment->update(['status' => Payment::STATUS_FAILED]);

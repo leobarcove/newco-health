@@ -21,6 +21,7 @@ class ConsultController extends Controller
             'complaint' => ['required', 'string', 'max:2000'],
             'answers' => ['array'],
             'answers.*' => ['boolean'],
+            'dependant_id' => ['sometimes', 'nullable', 'ulid', 'exists:dependants,id'],
         ]);
 
         $patient = $request->user()->patient;
@@ -36,7 +37,16 @@ class ConsultController extends Controller
             ], 428);
         }
 
-        $consult = $this->consults->createFromIntake($patient, $data['complaint'], $data['answers'] ?? []);
+        // A consult may be for a dependant — but only the guardian's own.
+        $dependantId = $data['dependant_id'] ?? null;
+        if ($dependantId !== null) {
+            $owned = \App\Modules\Patients\Models\Dependant::where('id', $dependantId)
+                ->where('patient_id', $patient->id)
+                ->exists();
+            abort_unless($owned, 403, 'That dependant does not belong to you.');
+        }
+
+        $consult = $this->consults->createFromIntake($patient, $data['complaint'], $data['answers'] ?? [], $dependantId);
 
         return response()->json($this->serialise($consult), 201);
     }
@@ -66,6 +76,10 @@ class ConsultController extends Controller
             'modality' => $consult->modality,
             'queue_position' => $this->consults->queuePosition($consult),
             'doctor' => $consult->doctor?->user?->only(['name']),
+            'for_dependant' => $consult->dependant_id === null ? null : [
+                'id' => $consult->dependant_id,
+                'name' => \App\Modules\Patients\Models\Dependant::find($consult->dependant_id)?->name,
+            ],
             'created_at' => $consult->created_at?->toIso8601String(),
         ];
     }

@@ -101,6 +101,12 @@ export function LoginPage() {
       )}
 
       {error && <p className="rounded-xl bg-red-50 p-3 text-base text-red-700">{error}</p>}
+
+      {step === 'phone' && (
+        <a href="/sponsor/login" className="text-center text-base text-slate-500 underline">
+          Abroad and paying for family in Nigeria? Sponsor sign-in
+        </a>
+      )}
     </main>
   )
 }

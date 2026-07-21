@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, ApiError, type Consult } from '../../lib/api'
 
 /** Red-flag screen first — emergencies must never sit in a queue (startup plan §10). */
@@ -11,17 +11,29 @@ const RED_FLAG_QUESTIONS: { key: string; label: string }[] = [
   { key: 'loss_of_consciousness', label: 'Fainted or lost consciousness' },
 ]
 
+interface Dependant {
+  id: string
+  name: string
+  relationship: string
+}
+
 export function IntakePage() {
   const [complaint, setComplaint] = useState('')
   const [flags, setFlags] = useState<Record<string, boolean>>({})
   const [consentNeeded, setConsentNeeded] = useState(false)
+  const [forDependant, setForDependant] = useState<string | null>(null)
   const navigate = useNavigate()
+
+  const { data: dependants = [] } = useQuery({
+    queryKey: ['dependants'],
+    queryFn: () => api<Dependant[]>('/dependants'),
+  })
 
   const start = useMutation({
     mutationFn: () =>
       api<Consult>('/consults', {
         method: 'POST',
-        body: JSON.stringify({ complaint, answers: flags }),
+        body: JSON.stringify({ complaint, answers: flags, dependant_id: forDependant }),
       }),
     onSuccess: (consult) => navigate(`/consult/${consult.id}`, { replace: true }),
     onError: (e) => {
@@ -44,6 +56,35 @@ export function IntakePage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold text-slate-900">Tell us what's wrong</h1>
+
+      {dependants.length > 0 && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-base font-medium text-slate-700">Who is this consult for?</legend>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setForDependant(null)}
+              className={`min-h-11 rounded-full border px-4 text-base ${
+                forDependant === null ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white text-slate-700'
+              }`}
+            >
+              Myself
+            </button>
+            {dependants.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setForDependant(d.id)}
+                className={`min-h-11 rounded-full border px-4 text-base ${
+                  forDependant === d.id ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white text-slate-700'
+                }`}
+              >
+                {d.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <label className="flex flex-col gap-2">
         <span className="text-base font-medium text-slate-700">Describe how you're feeling</span>

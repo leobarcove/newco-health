@@ -19,9 +19,9 @@ class ConsultService
      * Create a consult from a triage intake. Red-flag intakes are escalated
      * immediately — they never enter the normal queue.
      */
-    public function createFromIntake(Patient $patient, string $complaint, array $answers): Consult
+    public function createFromIntake(Patient $patient, string $complaint, array $answers, ?string $dependantId = null): Consult
     {
-        return DB::transaction(function () use ($patient, $complaint, $answers) {
+        return DB::transaction(function () use ($patient, $complaint, $answers, $dependantId) {
             $redFlag = collect($answers)
                 ->filter(fn ($value, $key) => in_array($key, TriageIntake::RED_FLAGS, true) && $value === true)
                 ->isNotEmpty();
@@ -35,6 +35,7 @@ class ConsultService
 
             $consult = Consult::create([
                 'patient_id' => $patient->id,
+                'dependant_id' => $dependantId,
                 'triage_intake_id' => $intake->id,
                 'state' => Consult::STATE_REQUESTED,
             ]);
@@ -46,7 +47,15 @@ class ConsultService
                 $this->stateMachine->transition($consult, Consult::STATE_ESCALATED, $patient->user_id);
                 $this->systemMessage($consult, __('Your symptoms need urgent in-person care. Please go to the nearest hospital now. Our team has been alerted.'));
             } elseif (config('pricing.payments_required')) {
-                $this->systemMessage($consult, __('Complete payment to join the queue — the fee is shown before you pay.'));
+                // An active sponsor's wallet may cover the fee silently.
+                $covered = app(\App\Modules\Patients\Services\SponsorshipService::class)->tryCoverConsult($consult);
+
+                if ($covered !== null) {
+                    $this->stateMachine->transition($consult, Consult::STATE_QUEUED, $patient->user_id);
+                    $this->systemMessage($consult, __('This consult is covered by your sponsor. You are in the queue — a doctor will be with you shortly.'));
+                } else {
+                    $this->systemMessage($consult, __('Complete payment to join the queue — the fee is shown before you pay.'));
+                }
             } else {
                 $this->stateMachine->transition($consult, Consult::STATE_QUEUED, $patient->user_id);
                 $this->systemMessage($consult, __('You are in the queue. A doctor will be with you shortly — we will notify you.'));
