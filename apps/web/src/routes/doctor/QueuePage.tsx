@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 
@@ -29,7 +29,13 @@ export function QueuePage() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-4 p-6">
-      <h1 className="text-2xl font-bold text-slate-900">Waiting patients</h1>
+      <header className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Waiting patients</h1>
+        <nav className="flex gap-4 text-base">
+          <Link to="/doctor/agenda" className="text-slate-500 underline">Agenda</Link>
+          <Link to="/doctor/availability" className="text-slate-500 underline">Availability</Link>
+        </nav>
+      </header>
 
       {queue.length === 0 ? (
         <p className="rounded-xl bg-slate-100 p-6 text-center text-base text-slate-600">

@@ -136,6 +136,7 @@ One codebase, hard module boundaries (folders + no cross-module model imports; i
 | `patients` | Profiles, dependants, medical history vault, sponsor↔beneficiary links + consent toggles |
 | `doctors` | Onboarding, MDCN licence verification + expiry tracking, availability roster, auto-suspension |
 | `consults` | The core state machine (Section 5.4), queue (Redis sorted sets), triage intake, consult threads/messages, Daily.co room orchestration (ported from CLEA's `DailyCoController` pattern) |
+| `scheduling` | Booked appointments: weekly availability templates + date exceptions (slots generated on demand, never materialised — ADR-004), double-booking guards, reschedule/cancel policies, reminders, no-show sweep; booked consults bypass the queue |
 | `prescribing` | Formulary (Nigerian Essential Medicines List), e-prescriptions, PDF generation, pharmacy routing + pickup codes |
 | `payments` | Paystack primary / Flutterwave failover, NGN + FX checkout, wallets, subscriptions, webhooks, reconciliation |
 | `payouts` | Doctor earnings ledger, weekly payout runs (Paystack Transfers), payout statements |

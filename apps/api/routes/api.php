@@ -5,6 +5,8 @@ use App\Modules\Consults\Http\DoctorConsultController;
 use App\Modules\Consults\Http\MessageController;
 use App\Modules\Identity\Http\AuthController;
 use App\Modules\Prescribing\Http\PrescriptionController;
+use App\Modules\Scheduling\Http\BookingController;
+use App\Modules\Scheduling\Http\DoctorScheduleController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -31,4 +33,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('formulary', [PrescriptionController::class, 'formulary']);
     Route::post('doctor/consults/{consult}/prescriptions', [PrescriptionController::class, 'store']);
     Route::get('prescriptions/{prescription}', [PrescriptionController::class, 'show']);
+
+    // Booking (patient)
+    Route::get('booking/doctors', [BookingController::class, 'doctors']);
+    Route::get('booking/doctors/{doctor}/slots', [BookingController::class, 'slots']);
+    Route::get('bookings', [BookingController::class, 'index']);
+    Route::post('bookings', [BookingController::class, 'store']);
+    Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel']);
+    Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule']);
+
+    // Booking (doctor)
+    Route::get('doctor/availability', [DoctorScheduleController::class, 'availability']);
+    Route::put('doctor/availability', [DoctorScheduleController::class, 'updateAvailability']);
+    Route::get('doctor/agenda', [DoctorScheduleController::class, 'agenda']);
+    Route::post('doctor/bookings/{booking}/begin', [DoctorScheduleController::class, 'begin']);
 });

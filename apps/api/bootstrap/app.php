@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
+    ->withCommands([
+        __DIR__.'/../app/Modules/Scheduling/Console',
+    ])
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',
         // The SPA authorises private channels with its Sanctum bearer token.

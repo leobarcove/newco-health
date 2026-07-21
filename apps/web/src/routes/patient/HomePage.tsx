@@ -29,9 +29,20 @@ export function HomePage() {
           to="/intake"
           className="flex min-h-14 items-center justify-center rounded-xl bg-emerald-600 px-6 text-lg font-semibold text-white"
         >
-          Talk to a doctor
+          Talk to a doctor now
         </Link>
       )}
+
+      <Link
+        to="/book"
+        className="flex min-h-14 items-center justify-center rounded-xl border-2 border-emerald-600 px-6 text-lg font-semibold text-emerald-700"
+      >
+        Book an appointment
+      </Link>
+
+      <Link to="/appointments" className="text-center text-base text-slate-500 underline">
+        Your appointments
+      </Link>
 
       <p className="text-center text-sm text-slate-500">
         Licensed Nigerian doctors · Available every day · Fair, upfront prices

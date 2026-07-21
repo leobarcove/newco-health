@@ -24,5 +24,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Consult::class, ConsultPolicy::class);
+        Gate::policy(\App\Modules\Scheduling\Models\Booking::class, \App\Policies\BookingPolicy::class);
     }
 }
