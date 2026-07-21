@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { api, setToken } from '../../lib/api'
+import { Logo } from '../../ui/Logo'
+import { btn, input } from '../../ui/primitives'
 
 export function PharmacyLoginPage() {
   const [email, setEmail] = useState('')
@@ -27,33 +29,26 @@ export function PharmacyLoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-5 p-6">
-      <h1 className="text-2xl font-bold text-slate-900">Pharmacy counter</h1>
-      <p className="text-base text-slate-600">Sign in to look up and dispense NewCo Health prescriptions.</p>
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-7 px-6 py-10">
+      <div className="flex flex-col items-start gap-6">
+        <Logo size="lg" />
+        <div>
+          <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-slate-900">Pharmacy counter</h1>
+          <p className="mt-3 text-base leading-relaxed text-slate-500">
+            Sign in to look up pickup codes and dispense NewCo Health prescriptions.
+          </p>
+        </div>
+      </div>
 
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Counter email"
-        className="min-h-13 rounded-2xl border border-slate-300/80 px-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
-        className="min-h-13 rounded-2xl border border-slate-300/80 px-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
-      />
-      <button
-        onClick={submit}
-        disabled={busy || !email || !password}
-        className="min-h-13 rounded-2xl bg-emerald-600 text-base font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
-      >
-        {busy ? 'Signing in…' : 'Sign in'}
-      </button>
+      <div className="flex flex-col gap-3">
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Counter email" className={input} />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className={input} />
+        <button onClick={submit} disabled={busy || !email || !password} className={btn.primary}>
+          {busy ? 'Signing in…' : 'Sign in'}
+        </button>
+      </div>
 
-      {error && <p className="rounded-2xl bg-red-50 p-4 text-base text-red-700">{error}</p>}
-    </main>
+      {error && <p className="rounded-2xl bg-red-50 p-4 text-[15px] text-red-800">{error}</p>}
+    </div>
   )
 }

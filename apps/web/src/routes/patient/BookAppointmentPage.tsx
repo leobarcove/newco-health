@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
+import { Shell, PageTitle } from '../../ui/shells'
+import { Avatar, EmptyState, btn, input } from '../../ui/primitives'
 
 interface BookableDoctor {
   id: string
@@ -16,6 +18,22 @@ interface Slot {
 
 const LAGOS_TIME = new Intl.DateTimeFormat('en-NG', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' })
 const LAGOS_DAY = new Intl.DateTimeFormat('en-NG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Africa/Lagos' })
+
+/** Numbered step header — consistent wizard language. */
+function Step({ children, muted }: { children: ReactNode; muted?: string }) {
+  return (
+    <h2 className="mb-3 text-[15px] font-semibold text-slate-900">
+      {children} {muted && <span className="font-normal text-slate-400">{muted}</span>}
+    </h2>
+  )
+}
+
+const chip = (selected: boolean) =>
+  `min-h-11 shrink-0 rounded-full px-4 text-[15px] font-medium transition ${
+    selected
+      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
+      : 'border border-slate-300/80 bg-white text-slate-700 hover:border-emerald-500/60'
+  }`
 
 /** Booking wizard: doctor → day → time → confirm. One decision per step (design plan §2.2). */
 export function BookAppointmentPage() {
@@ -71,48 +89,63 @@ export function BookAppointmentPage() {
   })
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
-      <header className="flex items-center gap-3">
-        <Link to="/" className="text-2xl text-slate-500" aria-label="Back">‹</Link>
-        <h1 className="text-2xl font-bold text-slate-900">Book an appointment</h1>
-      </header>
+    <Shell back="/">
+      <PageTitle sub="Pick a doctor and a time that suits you — all times are Lagos time.">
+        Book an appointment
+      </PageTitle>
 
       <section>
-        <h2 className="mb-2 text-base font-medium text-slate-700">1. Choose a doctor</h2>
-        <ul className="flex flex-col gap-2">
-          {doctors.map((d) => (
-            <li key={d.id}>
-              <button
-                onClick={() => { setDoctorId(d.id); setSlot(null) }}
-                className={`flex w-full items-center justify-between rounded-xl border p-4 text-left ${
-                  doctorId === d.id ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white'
-                }`}
-              >
-                <span className="text-base font-medium text-slate-900">Dr {d.name}</span>
-                <span className="text-sm text-slate-500">Next: {LAGOS_DAY.format(new Date(d.next_slot))}</span>
-              </button>
-            </li>
-          ))}
-          {doctors.length === 0 && (
-            <p className="rounded-2xl bg-slate-900/5 p-4 text-base text-slate-600">
-              No doctors are taking bookings right now — try an instant consult instead.
-            </p>
-          )}
-        </ul>
+        <Step>1. Choose a doctor</Step>
+        {doctors.length === 0 ? (
+          <EmptyState
+            icon="calendar"
+            title="No bookable times right now"
+            hint="Our doctors' diaries are full or closed at the moment — an instant consult is usually under 10 minutes."
+          />
+        ) : (
+          <ul className="flex flex-col gap-2.5">
+            {doctors.map((d) => (
+              <li key={d.id}>
+                <button
+                  onClick={() => { setDoctorId(d.id); setSlot(null) }}
+                  className={`flex w-full items-center gap-3.5 rounded-3xl border bg-white p-4 text-left shadow-xs transition ${
+                    doctorId === d.id
+                      ? 'border-emerald-600 ring-4 ring-emerald-600/15'
+                      : 'border-slate-900/8 hover:border-emerald-500/50'
+                  }`}
+                >
+                  <Avatar name={d.name} size="md" />
+                  <span className="flex-1">
+                    <span className="block text-base font-semibold text-slate-900">Dr {d.name}</span>
+                    <span className="mt-0.5 block text-sm text-slate-500">
+                      Next free: {LAGOS_DAY.format(new Date(d.next_slot))}
+                    </span>
+                  </span>
+                  <span
+                    className={`grid size-6 shrink-0 place-items-center rounded-full border-2 transition ${
+                      doctorId === d.id ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {doctorId === d.id && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
+                        <path d="m5 13 4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {doctorId && (
         <section>
-          <h2 className="mb-2 text-base font-medium text-slate-700">2. Pick a day</h2>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <Step>2. Pick a day</Step>
+          <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2">
             {days.map((d) => (
-              <button
-                key={d.value}
-                onClick={() => { setDay(d.value); setSlot(null) }}
-                className={`min-h-12 shrink-0 rounded-full border px-4 text-base ${
-                  day === d.value ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white text-slate-700'
-                }`}
-              >
+              <button key={d.value} onClick={() => { setDay(d.value); setSlot(null) }} className={chip(day === d.value)}>
                 {d.label}
               </button>
             ))}
@@ -122,21 +155,27 @@ export function BookAppointmentPage() {
 
       {doctorId && day && (
         <section>
-          <h2 className="mb-2 text-base font-medium text-slate-700">3. Pick a time <span className="text-slate-400">(Lagos time)</span></h2>
+          <Step muted="(Lagos time)">3. Pick a time</Step>
           {slotsLoading ? (
-            <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-12 animate-pulse rounded-2xl bg-slate-900/5" />
+              ))}
+            </div>
           ) : slots.length === 0 ? (
-            <p className="rounded-2xl bg-slate-900/5 p-4 text-base text-slate-600">No free times this day — try another day.</p>
+            <p className="rounded-2xl bg-slate-900/5 p-4 text-[15px] text-slate-600">
+              No free times this day — try another day.
+            </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {slots.map((s) => (
                 <button
                   key={s.starts_at}
                   onClick={() => setSlot(s)}
-                  className={`min-h-12 rounded-xl border text-base ${
+                  className={`min-h-12 rounded-2xl text-[15px] font-medium tabular-nums transition ${
                     slot?.starts_at === s.starts_at
-                      ? 'border-emerald-600 bg-emerald-600 text-white'
-                      : 'border-slate-300 bg-white text-slate-700'
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
+                      : 'border border-slate-300/80 bg-white text-slate-700 hover:border-emerald-500/60'
                   }`}
                 >
                   {LAGOS_TIME.format(new Date(s.starts_at))}
@@ -149,28 +188,27 @@ export function BookAppointmentPage() {
 
       {slot && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-base font-medium text-slate-700">4. What is it about? <span className="text-slate-400">(optional)</span></h2>
+          <Step muted="(optional)">4. What is it about?</Step>
           <textarea
             value={complaint}
             onChange={(e) => setComplaint(e.target.value)}
             rows={3}
             placeholder="e.g. Follow-up on my blood pressure…"
-            className="rounded-2xl border border-slate-300/80 p-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
+            className={`${input} min-h-24 py-3.5`}
           />
-          <button
-            onClick={() => book.mutate()}
-            disabled={book.isPending}
-            className="min-h-13 rounded-2xl bg-emerald-600 text-base font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
-          >
-            {book.isPending ? 'Booking…' : `Confirm — ${LAGOS_DAY.format(new Date(slot.starts_at))}, ${LAGOS_TIME.format(new Date(slot.starts_at))}`}
+          <button onClick={() => book.mutate()} disabled={book.isPending} className={btn.primary}>
+            {book.isPending
+              ? 'Booking…'
+              : `Confirm — ${LAGOS_DAY.format(new Date(slot.starts_at))}, ${LAGOS_TIME.format(new Date(slot.starts_at))}`}
           </button>
+          <p className="text-center text-sm text-slate-400">₦2,500 per appointment — shown before you pay, always.</p>
           {book.isError && (
-            <p className="rounded-2xl bg-red-50 p-4 text-base text-red-700">
+            <p className="rounded-2xl bg-red-50 p-4 text-[15px] text-red-800">
               That time may have just been taken — please pick another slot.
             </p>
           )}
         </section>
       )}
-    </main>
+    </Shell>
   )
 }

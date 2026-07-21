@@ -58,14 +58,14 @@ export function NotesPanel({ consultId }: { consultId: string }) {
             }}
             rows={2}
             placeholder={hint}
-            className="rounded-lg border border-slate-300 p-2 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
+            className="rounded-xl border border-slate-300/80 bg-white p-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
           />
         </label>
       ))}
       <button
         onClick={() => save.mutate()}
         disabled={save.isPending || !dirty}
-        className="min-h-11 rounded-lg bg-slate-800 text-sm font-semibold text-white disabled:opacity-40"
+        className="min-h-11 rounded-xl bg-slate-800 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-40"
       >
         {save.isPending ? 'Saving…' : dirty ? 'Save notes' : 'Notes saved'}
       </button>

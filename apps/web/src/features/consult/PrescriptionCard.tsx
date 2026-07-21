@@ -21,12 +21,12 @@ export function PrescriptionCard({ prescriptionId }: { prescriptionId: string })
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4">
+    <div className="mx-auto w-full max-w-sm rounded-3xl border border-emerald-600/25 bg-emerald-50 p-4 shadow-xs">
       <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-emerald-800">Prescription</p>
 
       <ul className="mb-3 space-y-2">
         {data.items.map((item, i) => (
-          <li key={i} className="rounded-lg bg-white p-3">
+          <li key={i} className="rounded-xl bg-white p-3 shadow-xs">
             <p className="text-base font-medium text-slate-900">{item.medicine}</p>
             <p className="text-sm text-slate-600">
               {item.dosage} · {item.duration_days} days
@@ -36,7 +36,7 @@ export function PrescriptionCard({ prescriptionId }: { prescriptionId: string })
         ))}
       </ul>
 
-      <div className="rounded-lg bg-emerald-600 p-3 text-center">
+      <div className="rounded-2xl bg-emerald-600 p-3.5 text-center shadow-sm shadow-emerald-600/25">
         <p className="text-xs uppercase tracking-wide text-emerald-100">
           {data.status === 'dispensed' ? 'Collected' : 'Show this code at any partner pharmacy'}
         </p>

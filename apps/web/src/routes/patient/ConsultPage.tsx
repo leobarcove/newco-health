@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Consult } from '../../lib/api'
 import { Thread } from '../../features/consult/Thread'
+import { Avatar } from '../../ui/primitives'
 
 const LIVE_STATES = ['queued', 'assigned', 'in_consult', 'concluded']
 
@@ -22,21 +23,38 @@ export function ConsultPage() {
 
   if (!consult) {
     return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <div className="h-24 w-64 animate-pulse rounded-2xl bg-slate-100" />
+      <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center px-5">
+        <div className="h-28 w-full animate-pulse rounded-3xl bg-slate-900/5" />
       </main>
     )
   }
 
+  const doctorName = consult.doctor ? `Dr ${consult.doctor.name}` : 'Your consult'
+
   return (
-    <main className="mx-auto flex h-dvh max-w-md flex-col bg-slate-50">
-      <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
-        <Link to="/" className="text-2xl text-slate-500" aria-label="Back to home">
-          ‹
+    <main className="mx-auto flex h-dvh w-full max-w-md flex-col">
+      <header className="flex items-center gap-2.5 border-b border-slate-900/8 bg-white px-4 py-3">
+        <Link
+          to="/"
+          aria-label="Back to home"
+          className="-ml-1 grid size-10 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-900/5 hover:text-slate-900"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="size-5">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
         </Link>
-        <div>
-          <h1 className="text-base font-semibold text-slate-900">
-            {consult.doctor ? `Dr ${consult.doctor.name}` : 'Your consult'}
+        {consult.doctor ? (
+          <Avatar name={consult.doctor.name} size="sm" />
+        ) : (
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-600/10">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5 text-emerald-700" aria-hidden="true">
+              <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+            </svg>
+          </span>
+        )}
+        <div className="min-w-0">
+          <h1 className="truncate text-base font-semibold text-slate-900">
+            {consult.for_dependant ? `${doctorName} · for ${consult.for_dependant.name}` : doctorName}
           </h1>
           <StateBanner consult={consult} />
         </div>
@@ -49,6 +67,33 @@ export function ConsultPage() {
       </div>
     </main>
   )
+}
+
+function StateBanner({ consult }: { consult: Consult }) {
+  switch (consult.state) {
+    case 'queued':
+      return (
+        <p className="flex items-center gap-1.5 text-[13px] font-medium text-amber-700">
+          <span className="size-1.5 animate-pulse rounded-full bg-amber-500" aria-hidden="true" />
+          {consult.queue_position === 1
+            ? "You're next — a doctor will join shortly"
+            : `You're number ${consult.queue_position ?? '…'} in the queue`}
+        </p>
+      )
+    case 'in_consult':
+      return (
+        <p className="flex items-center gap-1.5 text-[13px] font-medium text-emerald-700">
+          <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+          With you now
+        </p>
+      )
+    case 'concluded':
+      return <p className="text-[13px] text-slate-500">Ended — you can reply for 72 hours</p>
+    case 'escalated_emergency':
+      return <p className="text-[13px] font-semibold text-red-700">Please go to the nearest hospital now</p>
+    default:
+      return null
+  }
 }
 
 /** Payment gate: price upfront, no surprises (design plan §6 money rules). */
@@ -68,14 +113,14 @@ function PayPanel({ consultId }: { consultId: string }) {
   })
 
   return (
-    <div className="border-b border-amber-200 bg-amber-50 p-4">
-      <p className="mb-2 text-base text-amber-900">
-        Consult fee: <strong>₦2,500</strong> — pay by card, transfer, or USSD. You only pay once per consult.
+    <div className="border-b border-amber-200/70 bg-amber-50 p-4">
+      <p className="mb-3 text-[15px] leading-relaxed text-amber-900">
+        Consult fee: <strong>₦2,500</strong> — card, transfer, or USSD. You only pay once per consult.
       </p>
       <button
         onClick={() => pay.mutate()}
         disabled={pay.isPending}
-        className="min-h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white disabled:opacity-50"
+        className="min-h-12 w-full rounded-2xl bg-emerald-600 text-[15px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
       >
         {pay.isPending ? 'Starting payment…' : 'Pay and join the queue'}
       </button>
@@ -84,25 +129,4 @@ function PayPanel({ consultId }: { consultId: string }) {
       )}
     </div>
   )
-}
-
-function StateBanner({ consult }: { consult: Consult }) {
-  switch (consult.state) {
-    case 'queued':
-      return (
-        <p className="text-sm text-amber-700">
-          {consult.queue_position === 1
-            ? "You're next — a doctor will join shortly."
-            : `You're number ${consult.queue_position ?? '…'} in the queue. We'll notify you.`}
-        </p>
-      )
-    case 'in_consult':
-      return <p className="text-sm text-emerald-700">Doctor is with you now</p>
-    case 'concluded':
-      return <p className="text-sm text-slate-500">Consult ended — you can reply for 72 hours</p>
-    case 'escalated_emergency':
-      return <p className="text-sm font-semibold text-red-700">Please go to the nearest hospital now</p>
-    default:
-      return null
-  }
 }

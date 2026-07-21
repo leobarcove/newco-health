@@ -30,7 +30,7 @@ test('sponsor funds a wallet and links a beneficiary who accepts', async ({ brow
   await sponsor.getByPlaceholder(/Who are they to you/).fill('Mum')
   await sponsor.getByPlaceholder('Their phone number').fill('8077778888')
   await sponsor.getByRole('button', { name: 'Send invitation by SMS' }).click()
-  await expect(sponsor.getByText('Waiting for them to accept')).toBeVisible({ timeout: 10_000 })
+  await expect(sponsor.getByText('Awaiting accept')).toBeVisible({ timeout: 10_000 })
 
   // Beneficiary signs in on their own phone and accepts
   await beneficiary.goto('/login')

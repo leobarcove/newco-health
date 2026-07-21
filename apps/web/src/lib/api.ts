@@ -55,6 +55,7 @@ export interface Consult {
   modality: string
   queue_position: number | null
   doctor: { name: string } | null
+  for_dependant: { id: string; name: string | null } | null
   created_at: string
 }
 

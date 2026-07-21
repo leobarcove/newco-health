@@ -48,12 +48,12 @@ export function PrescribePanel({ consultId }: { consultId: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search the formulary…"
-          className="rounded-lg border border-slate-300 p-2 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
+          className="rounded-xl border border-slate-300/80 bg-white p-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
         />
       </label>
 
       {query.length >= 2 && (
-        <ul className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
+        <ul className="max-h-40 overflow-y-auto rounded-xl border border-slate-900/8 shadow-xs">
           {hits.map((hit) => (
             <li key={hit.id}>
               <button
@@ -74,7 +74,7 @@ export function PrescribePanel({ consultId }: { consultId: string }) {
       )}
 
       {items.map((item, index) => (
-        <div key={item.formulary_item_id} className="rounded-lg border border-slate-200 p-3">
+        <div key={item.formulary_item_id} className="rounded-xl border border-slate-900/8 bg-white p-3 shadow-xs">
           <div className="mb-2 flex items-start justify-between gap-2">
             <p className="text-sm font-medium text-slate-900">{item.label}</p>
             <button
@@ -89,7 +89,7 @@ export function PrescribePanel({ consultId }: { consultId: string }) {
             value={item.dosage}
             onChange={(e) => setItems(items.map((it, i) => (i === index ? { ...it, dosage: e.target.value } : it)))}
             placeholder="Dosage, e.g. 1 tablet twice daily"
-            className="mb-2 w-full rounded-lg border border-slate-300 p-2 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
+            className="mb-2 w-full rounded-xl border border-slate-300/80 bg-white p-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
           />
           <label className="flex items-center gap-2 text-sm text-slate-600">
             for
@@ -99,7 +99,7 @@ export function PrescribePanel({ consultId }: { consultId: string }) {
               max={90}
               value={item.duration_days}
               onChange={(e) => setItems(items.map((it, i) => (i === index ? { ...it, duration_days: Number(e.target.value) } : it)))}
-              className="w-16 rounded-lg border border-slate-300 p-1 text-sm"
+              className="w-16 rounded-xl border border-slate-300/80 bg-white p-1.5 text-center text-sm"
             />
             days
           </label>
@@ -109,7 +109,7 @@ export function PrescribePanel({ consultId }: { consultId: string }) {
       <button
         onClick={() => issue.mutate()}
         disabled={issue.isPending || items.length === 0 || items.some((i) => i.dosage.trim() === '')}
-        className="min-h-11 rounded-lg bg-emerald-600 text-sm font-semibold text-white disabled:opacity-40"
+        className="min-h-11 rounded-xl bg-emerald-600 text-sm font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-40 disabled:shadow-none"
       >
         {issue.isPending ? 'Issuing…' : `Issue prescription${items.length > 0 ? ` (${items.length})` : ''}`}
       </button>

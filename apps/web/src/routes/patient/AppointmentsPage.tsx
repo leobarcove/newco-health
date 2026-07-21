@@ -1,6 +1,8 @@
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
+import { Shell, PageTitle } from '../../ui/shells'
+import { Avatar, Badge, Card, EmptyState } from '../../ui/primitives'
 
 interface Booking {
   id: string
@@ -40,37 +42,50 @@ export function AppointmentsPage() {
   const past = bookings.filter((b) => b.state !== 'confirmed' && b.state !== 'pending_payment')
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
-      <header className="flex items-center gap-3">
-        <Link to="/" className="text-2xl text-slate-500" aria-label="Back">‹</Link>
-        <h1 className="text-2xl font-bold text-slate-900">Your appointments</h1>
-      </header>
+    <Shell back="/">
+      <PageTitle>Your appointments</PageTitle>
 
       {upcoming.length === 0 && (
-        <div className="flex flex-col gap-3 rounded-2xl bg-slate-900/5 p-6 text-center">
-          <p className="text-base text-slate-600">No upcoming appointments.</p>
-          <Link to="/book" className="text-base font-semibold text-emerald-700 underline">Book one now</Link>
-        </div>
+        <EmptyState
+          icon="calendar"
+          title="No upcoming appointments"
+          hint="Book a time with a doctor that suits your day — mornings, evenings, whatever works."
+          action={
+            <Link to="/book" className="mt-1 inline-flex min-h-11 items-center rounded-2xl bg-emerald-600 px-5 text-[15px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700">
+              Book one now
+            </Link>
+          }
+        />
       )}
 
       {upcoming.map((b) => (
-        <div key={b.id} className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-base font-semibold text-slate-900">Dr {b.doctor.name}</p>
-          <p className="mb-3 text-base text-slate-700">{WHEN.format(new Date(b.starts_at))}</p>
+        <Card key={b.id} className={b.state === 'pending_payment' ? 'border-amber-300/70' : 'border-emerald-600/25'}>
+          <div className="flex items-center gap-3.5">
+            <Avatar name={b.doctor.name} size="md" />
+            <div className="flex-1">
+              <p className="text-base font-semibold text-slate-900">Dr {b.doctor.name}</p>
+              <p className="mt-0.5 text-[15px] text-slate-600">{WHEN.format(new Date(b.starts_at))}</p>
+            </div>
+            <Badge tone={b.state === 'pending_payment' ? 'warning' : 'success'}>
+              {b.state === 'pending_payment' ? 'Unpaid' : 'Confirmed'}
+            </Badge>
+          </div>
+
           {b.state === 'pending_payment' && (
             <button
               onClick={() => pay.mutate(b.id)}
               disabled={pay.isPending}
-              className="mb-2 min-h-11 w-full rounded-lg bg-amber-500 text-base font-semibold text-white disabled:opacity-50"
+              className="mt-4 min-h-12 w-full rounded-2xl bg-amber-500 text-[15px] font-semibold text-white shadow-sm shadow-amber-500/30 transition hover:bg-amber-600 disabled:opacity-45"
             >
               Pay ₦2,500 to confirm — slot held 15 minutes
             </button>
           )}
-          <div className="flex gap-2">
+
+          <div className="mt-4 flex gap-2">
             {b.consult_id && (
               <Link
                 to={`/consult/${b.consult_id}`}
-                className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-emerald-600 text-base font-semibold text-white"
+                className="flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-emerald-600 text-[15px] font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700"
               >
                 Join consult
               </Link>
@@ -78,35 +93,35 @@ export function AppointmentsPage() {
             <button
               onClick={() => cancel.mutate(b.id)}
               disabled={cancel.isPending}
-              className="min-h-11 flex-1 rounded-lg border border-slate-300 bg-white text-base text-slate-700"
+              className="min-h-12 flex-1 rounded-2xl border border-slate-300/80 bg-white text-[15px] font-medium text-slate-600 transition hover:bg-slate-50"
             >
               Cancel
             </button>
           </div>
           {cancel.isError && (
-            <p className="mt-2 text-sm text-red-700">
+            <p className="mt-3 text-sm text-red-700">
               Appointments can only be cancelled up to 2 hours before the start time.
             </p>
           )}
-        </div>
+        </Card>
       ))}
 
       {past.length > 0 && (
         <section>
-          <h2 className="mb-2 text-base font-medium text-slate-500">Past</h2>
-          <ul className="flex flex-col gap-2">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">Past</h2>
+          <Card className="divide-y divide-slate-900/6 p-0">
             {past.map((b) => (
-              <li key={b.id} className="flex items-center justify-between rounded-2xl border border-slate-900/8 bg-white shadow-xs p-4">
+              <div key={b.id} className="flex items-center justify-between px-5 py-4">
                 <div>
-                  <p className="text-base text-slate-900">Dr {b.doctor.name}</p>
-                  <p className="text-sm text-slate-500">{WHEN.format(new Date(b.starts_at))}</p>
+                  <p className="text-[15px] font-medium text-slate-900">Dr {b.doctor.name}</p>
+                  <p className="mt-0.5 text-sm text-slate-500">{WHEN.format(new Date(b.starts_at))}</p>
                 </div>
-                <span className="text-sm capitalize text-slate-500">{b.state.replace('_', ' ')}</span>
-              </li>
+                <span className="text-sm capitalize text-slate-400">{b.state.replace('_', ' ')}</span>
+              </div>
             ))}
-          </ul>
+          </Card>
         </section>
       )}
-    </main>
+    </Shell>
   )
 }
