@@ -59,6 +59,18 @@ export function IntakePage() {
     },
   })
 
+  const consent = useMutation({
+    mutationFn: () =>
+      api('/consents', {
+        method: 'POST',
+        body: JSON.stringify({ kind: 'telemedicine_terms', granted: true }),
+      }),
+    onSuccess: () => {
+      setConsentNeeded(false)
+      start.mutate()
+    },
+  })
+
   if (queuedOffline) {
     return (
       <Shell back="/">
@@ -77,17 +89,6 @@ export function IntakePage() {
     )
   }
 
-  const consent = useMutation({
-    mutationFn: () =>
-      api('/consents', {
-        method: 'POST',
-        body: JSON.stringify({ kind: 'telemedicine_terms', granted: true }),
-      }),
-    onSuccess: () => {
-      setConsentNeeded(false)
-      start.mutate()
-    },
-  })
 
   return (
     <Shell back="/">

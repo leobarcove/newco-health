@@ -72,7 +72,19 @@ const queryClient = new QueryClient({
       retry: 2,
       staleTime: 10_000,
     },
+    mutations: {
+      // Fire even when navigator.onLine is false — the service worker owns
+      // offline semantics (it queues intake and replies 202). TanStack's
+      // default 'online' mode would pause the mutation and spin forever.
+      networkMode: 'always',
+    },
   },
+})
+
+// Nudge the SW to replay queued offline submissions the moment we're back
+// (the OS background-sync signal is a bonus, not a dependency).
+window.addEventListener('online', () => {
+  navigator.serviceWorker?.controller?.postMessage({ type: 'REPLAY_QUEUE' })
 })
 
 createRoot(document.getElementById('root')!).render(

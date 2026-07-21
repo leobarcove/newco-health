@@ -28,10 +28,20 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     (async () => {
+      // Queue a copy up front so we can replay even if the live attempt hangs.
+      const forQueue = request.clone()
+
       try {
-        return await fetch(request.clone())
+        // A connection that HANGS is as offline as one that fails — race it.
+        // (Real Nigerian 2G stalls more often than it errors.)
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 8_000)
+        const response = await fetch(request.clone(), { signal: controller.signal })
+        clearTimeout(timer)
+
+        return response
       } catch {
-        await intakeQueue.pushRequest({ request })
+        await intakeQueue.pushRequest({ request: forQueue })
 
         return new Response(JSON.stringify({ queued_offline: true }), {
           status: 202,
@@ -40,6 +50,15 @@ self.addEventListener('fetch', (event) => {
       }
     })(),
   )
+})
+
+// Belt and braces: the page nudges a replay on its 'online' event — the OS
+// 'sync' signal is unreliable on some Android WebViews (and absent in test
+// automation). Queue.replayRequests() is idempotent.
+self.addEventListener('message', (event) => {
+  if ((event.data as { type?: string } | null)?.type === 'REPLAY_QUEUE') {
+    void intakeQueue.replayRequests().catch(() => undefined)
+  }
 })
 
 // — Web push —

@@ -45,4 +45,11 @@ export default defineConfig({
       '/api': 'http://localhost:8000',
     },
   },
+  preview: {
+    // The offline e2e journey runs against a production preview — the real
+    // SW with a real precache (dev lazy-chunks break under offline).
+    proxy: {
+      '/api': 'http://localhost:8000',
+    },
+  },
 })

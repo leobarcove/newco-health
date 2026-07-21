@@ -43,6 +43,8 @@ jobs:
         run: |
           npm run lint --workspace apps/web
           npm run build --workspace apps/web
+      - name: Lighthouse budgets (throttled 3G, mobile — dev plan §8)
+        run: npx --yes @lhci/cli@0.15.x autorun
       - name: OpenAPI client drift check
         run: |
           npm run generate -w packages/api-client

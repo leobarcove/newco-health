@@ -14,3 +14,4 @@ apps/api/database/e2e.sqlite
 apps/api/database/database.sqlite
 apps/web/.env.local
 apps/web/dev-dist/
+.lighthouseci/

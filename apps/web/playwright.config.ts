@@ -44,5 +44,12 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 60_000,
     },
+    {
+      // Production preview for the offline journey (real SW + precache).
+      command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+      port: 4173,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
   ],
 })

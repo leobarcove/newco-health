@@ -204,11 +204,11 @@ PHI columns (names, clinical text, phone) encrypted at rest via Laravel's encryp
 | Budget | Limit | Enforcement |
 |---|---|---|
 | Patient PWA first-load JS | ≤ 200 KB gzipped | Vite build size check (`rollup-plugin-visualizer` + CI budget), fails the build |
-| Any patient route payload | ≤ 300 KB total | Lighthouse CI on 3G throttle profile (**pending — not yet wired**) |
-| Time-to-interactive on throttled 3G / mid-range Android profile | ≤ 5 s | Lighthouse CI budget file (**pending — not yet wired**) |
+| Any patient route payload | ≤ 300 KB total | Lighthouse CI, throttled-3G mobile profile (lighthouserc.json — fails the build) |
+| Time-to-interactive on throttled 3G / mid-range Android profile | ≤ 5 s | Lighthouse CI budget file (enforced, `interactive` assertion) |
 | Image uploads | client-side compress to ≤ 200 KB, EXIF-stripped | upload pipeline |
 | API responses | paginated, gzip/brotli, no unbounded lists | code review checklist |
-| Offline | intake queues offline with a designed "saved — sending when you're back online" state (SW returns 202, replays via Background Sync) | Playwright offline-emulation test still **pending** (needs a preview-server harness) |
+| Offline | intake queues offline with a designed "saved — sending when you're back online" state (SW returns 202; replays via Background Sync + an online-event nudge) | Playwright journey #5 against the production preview build (offline-intake.spec.ts) |
 
 Real-device check each sprint: one mid-range Android (~2 GB RAM) on a throttled connection runs the smoke flow.
 
