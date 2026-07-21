@@ -52,14 +52,49 @@ class BookingService
                 'doctor_id' => $doctor->id,
                 'starts_at' => $slot['starts_at'],
                 'ends_at' => $slot['ends_at'],
-                'state' => Booking::STATE_CONFIRMED,
+                'state' => config('pricing.payments_required') ? Booking::STATE_PENDING_PAYMENT : Booking::STATE_CONFIRMED,
                 'complaint' => $complaint,
             ]);
 
-            $this->audit->record($booking, 'booking.confirmed', $patient->user_id);
+            if ($booking->state === Booking::STATE_PENDING_PAYMENT) {
+                // An active sponsor's wallet may cover it immediately.
+                $covered = app(\App\Modules\Patients\Services\SponsorshipService::class)->tryCoverBooking($booking);
+                if ($covered !== null) {
+                    $booking->update(['state' => Booking::STATE_CONFIRMED]);
+                }
+            }
 
-            return $booking;
+            $this->audit->record($booking, "booking.{$booking->state}", $patient->user_id);
+
+            return $booking->refresh();
         });
+    }
+
+    /** Called by the Payments module once the booking fee settles. */
+    public function confirmAfterPayment(Booking $booking): Booking
+    {
+        if ($booking->state === Booking::STATE_PENDING_PAYMENT) {
+            $booking->update(['state' => Booking::STATE_CONFIRMED]);
+            $this->audit->record($booking, 'booking.confirmed');
+        }
+
+        return $booking->refresh();
+    }
+
+    /** Unpaid holds expire so abandoned checkouts free the slot. */
+    public function expireUnpaidHolds(): int
+    {
+        $count = 0;
+
+        Booking::where('state', Booking::STATE_PENDING_PAYMENT)
+            ->where('created_at', '<', now()->subMinutes(15))
+            ->each(function (Booking $booking) use (&$count) {
+                $booking->update(['state' => Booking::STATE_CANCELLED, 'cancelled_by' => 'system']);
+                $this->audit->record($booking, 'booking.payment_expired');
+                $count++;
+            });
+
+        return $count;
     }
 
     public function cancel(Booking $booking, string $cancelledBy, int $actorId): Booking

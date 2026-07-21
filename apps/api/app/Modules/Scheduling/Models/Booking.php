@@ -16,10 +16,14 @@ class Booking extends Model
 {
     use HasFactory, HasUlids;
 
+    public const STATE_PENDING_PAYMENT = 'pending_payment';
     public const STATE_CONFIRMED = 'confirmed';
     public const STATE_COMPLETED = 'completed';
     public const STATE_CANCELLED = 'cancelled';
     public const STATE_NO_SHOW = 'no_show';
+
+    /** States that hold the slot against other bookings. */
+    public const SLOT_HOLDING_STATES = [self::STATE_PENDING_PAYMENT, self::STATE_CONFIRMED];
 
     protected function casts(): array
     {

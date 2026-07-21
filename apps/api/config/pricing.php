@@ -6,6 +6,7 @@
  */
 return [
     'consult_price_kobo' => env('PRICING_CONSULT_KOBO', 250_000), // ₦2,500
+    'booking_price_kobo' => env('PRICING_BOOKING_KOBO', 250_000), // ₦2,500 (scheduled)
 
     // Doctor's share of a consult fee (startup plan §10: 60–70%).
     'doctor_share_percent' => env('PRICING_DOCTOR_SHARE', 65),

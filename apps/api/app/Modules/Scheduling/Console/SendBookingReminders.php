@@ -38,7 +38,8 @@ class SendBookingReminders extends Command
         }
 
         $noShows = $bookings->markNoShows();
-        $this->info("Reminders sent: {$sent}; no-shows swept: {$noShows}");
+        $expired = $bookings->expireUnpaidHolds();
+        $this->info("Reminders sent: {$sent}; no-shows swept: {$noShows}; unpaid holds expired: {$expired}");
 
         return self::SUCCESS;
     }

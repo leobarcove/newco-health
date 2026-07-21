@@ -9,12 +9,13 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'purpose', 'consult_id', 'amount_kobo', 'currency', 'gateway', 'reference', 'status', 'meta', 'paid_at'])]
+#[Fillable(['user_id', 'purpose', 'consult_id', 'booking_id', 'amount_kobo', 'currency', 'gateway', 'reference', 'status', 'meta', 'paid_at'])]
 class Payment extends Model
 {
     use HasUlids;
 
     public const PURPOSE_CONSULT = 'consult';
+    public const PURPOSE_BOOKING = 'booking';
     public const PURPOSE_WALLET_TOPUP = 'wallet_topup';
 
     public const STATUS_PENDING = 'pending';

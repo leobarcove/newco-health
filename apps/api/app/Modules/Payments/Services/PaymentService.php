@@ -57,6 +57,38 @@ class PaymentService
         return $payment->refresh();
     }
 
+    /** Pay for a booking that is holding its slot pending payment. */
+    public function payForBooking(\App\Modules\Scheduling\Models\Booking $booking): Payment
+    {
+        if ($booking->state !== \App\Modules\Scheduling\Models\Booking::STATE_PENDING_PAYMENT) {
+            throw new DomainException('This booking is not awaiting payment.');
+        }
+
+        $payment = Payment::firstOrCreate(
+            ['booking_id' => $booking->id, 'purpose' => Payment::PURPOSE_BOOKING],
+            [
+                'user_id' => $booking->patient->user_id,
+                'amount_kobo' => (int) config('pricing.booking_price_kobo'),
+                'currency' => 'NGN',
+                'gateway' => $this->gateway->name(),
+                'reference' => 'PAY-'.Str::ulid(),
+            ],
+        );
+
+        if ($payment->status === Payment::STATUS_SUCCEEDED) {
+            return $payment;
+        }
+
+        $checkout = $this->gateway->initialise($payment);
+        $payment->update(['meta' => [...($payment->meta ?? []), 'checkout_url' => $checkout['checkout_url']]]);
+
+        if ($checkout['checkout_url'] === null) {
+            $this->settle($payment->reference, $this->gateway->verify($payment));
+        }
+
+        return $payment->refresh();
+    }
+
     /** Sponsor tops up their care wallet by an amount of their choosing. */
     public function topUpWallet(\App\Models\User $user, int $amountKobo): Payment
     {
@@ -99,6 +131,9 @@ class PaymentService
 
                 if ($payment->purpose === Payment::PURPOSE_CONSULT && $payment->consult !== null) {
                     $this->consults->queueAfterPayment($payment->consult);
+                } elseif ($payment->purpose === Payment::PURPOSE_BOOKING && $payment->booking_id !== null) {
+                    app(\App\Modules\Scheduling\Services\BookingService::class)
+                        ->confirmAfterPayment(\App\Modules\Scheduling\Models\Booking::findOrFail($payment->booking_id));
                 } elseif ($payment->purpose === Payment::PURPOSE_WALLET_TOPUP) {
                     app(\App\Modules\Payments\Services\WalletService::class)
                         ->credit($payment->user, $payment->amount_kobo, "topup:{$payment->reference}");

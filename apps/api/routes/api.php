@@ -34,6 +34,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->
     Route::get('consults/{consult}/messages', [MessageController::class, 'index'])
         ->middleware('phi.log:consult.messages.read');
     Route::post('consults/{consult}/messages', [MessageController::class, 'store']);
+    Route::post('consults/{consult}/attachments', [\App\Modules\Consults\Http\AttachmentController::class, 'store']);
+    Route::get('consults/{consult}/messages/{message}/file', [\App\Modules\Consults\Http\AttachmentController::class, 'show'])
+        ->middleware('phi.log:attachment.read');
 
     // Consents (NDPA ledger)
     Route::get('consents', [\App\Modules\Compliance\Http\ConsentController::class, 'index']);
@@ -78,6 +81,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->
     Route::post('bookings', [BookingController::class, 'store']);
     Route::post('bookings/{booking}/cancel', [BookingController::class, 'cancel']);
     Route::post('bookings/{booking}/reschedule', [BookingController::class, 'reschedule']);
+    Route::post('bookings/{booking}/pay', [BookingController::class, 'pay']);
+
+    // Doctor clinical notes (SOAP-lite; doctor-only)
+    Route::get('doctor/consults/{consult}/notes', [\App\Modules\Consults\Http\NoteController::class, 'show']);
+    Route::put('doctor/consults/{consult}/notes', [\App\Modules\Consults\Http\NoteController::class, 'upsert']);
 
     // Booking (doctor)
     Route::get('doctor/availability', [DoctorScheduleController::class, 'availability']);

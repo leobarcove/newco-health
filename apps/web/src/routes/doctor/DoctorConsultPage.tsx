@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Consult } from '../../lib/api'
+import { NotesPanel } from '../../features/consult/NotesPanel'
 import { Thread } from '../../features/consult/Thread'
 
 export function DoctorConsultPage() {
   const { id = '' } = useParams()
+  const [showNotes, setShowNotes] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: consult } = useQuery({
@@ -28,19 +31,36 @@ export function DoctorConsultPage() {
           </Link>
           <h1 className="text-base font-semibold text-slate-900">Consult</h1>
         </div>
-        {consult.state === 'in_consult' && (
+        <div className="flex gap-2">
           <button
-            onClick={() => conclude.mutate()}
-            disabled={conclude.isPending}
-            className="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700"
+            onClick={() => setShowNotes(!showNotes)}
+            className={`min-h-10 rounded-lg border px-4 text-sm font-semibold ${
+              showNotes ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-300 text-slate-700'
+            }`}
           >
-            End consult
+            Notes
           </button>
-        )}
+          {consult.state === 'in_consult' && (
+            <button
+              onClick={() => conclude.mutate()}
+              disabled={conclude.isPending}
+              className="min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700"
+            >
+              End consult
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="min-h-0 flex-1">
-        <Thread consultId={consult.id} live={consult.state === 'in_consult' || consult.state === 'concluded'} />
+      <div className="flex min-h-0 flex-1">
+        <div className="min-h-0 min-w-0 flex-1">
+          <Thread consultId={consult.id} live={consult.state === 'in_consult' || consult.state === 'concluded'} />
+        </div>
+        {showNotes && (
+          <aside className="w-80 shrink-0 overflow-y-auto border-l border-slate-200 bg-white">
+            <NotesPanel consultId={consult.id} />
+          </aside>
+        )}
       </div>
     </main>
   )

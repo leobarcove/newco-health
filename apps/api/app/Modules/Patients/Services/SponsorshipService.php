@@ -98,24 +98,44 @@ class SponsorshipService
      */
     public function tryCoverConsult(Consult $consult): ?Payment
     {
-        $fee = (int) config('pricing.consult_price_kobo');
+        return $this->tryCover(
+            $consult->patient_id,
+            (int) config('pricing.consult_price_kobo'),
+            [Payment::PURPOSE_CONSULT, 'consult_id', $consult->id],
+        );
+    }
 
-        $sponsorships = Sponsorship::where('patient_id', $consult->patient_id)
+    /** Same, for a booked appointment awaiting payment. */
+    public function tryCoverBooking(\App\Modules\Scheduling\Models\Booking $booking): ?Payment
+    {
+        return $this->tryCover(
+            $booking->patient_id,
+            (int) config('pricing.booking_price_kobo'),
+            [Payment::PURPOSE_BOOKING, 'booking_id', $booking->id],
+        );
+    }
+
+    /** @param array{0: string, 1: string, 2: string} $purpose [purpose, fk column, id] */
+    private function tryCover(string $patientId, int $fee, array $purpose): ?Payment
+    {
+        [$purposeName, $column, $id] = $purpose;
+
+        $sponsorships = Sponsorship::where('patient_id', $patientId)
             ->where('status', Sponsorship::STATUS_ACTIVE)
             ->with('sponsor')
             ->get();
 
         foreach ($sponsorships as $sponsorship) {
             try {
-                $this->wallets->debit($sponsorship->sponsor, $fee, "consult:{$consult->id}");
+                $this->wallets->debit($sponsorship->sponsor, $fee, "{$purposeName}:{$id}");
             } catch (DomainException) {
                 continue; // this sponsor's wallet can't cover it — try the next
             }
 
             $payment = Payment::create([
                 'user_id' => $sponsorship->sponsor_user_id,
-                'purpose' => Payment::PURPOSE_CONSULT,
-                'consult_id' => $consult->id,
+                'purpose' => $purposeName,
+                $column => $id,
                 'amount_kobo' => $fee,
                 'currency' => 'NGN',
                 'gateway' => 'wallet',

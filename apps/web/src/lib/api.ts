@@ -62,6 +62,7 @@ export interface Message {
   id: string
   kind: 'text' | 'image' | 'voice_note' | 'system' | 'prescription'
   body: string
+  file_url: string | null
   sender_id: number | null
   mine: boolean
   created_at: string

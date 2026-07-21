@@ -96,6 +96,21 @@ class BookingController extends Controller
         return response()->json($bookings->map(fn (Booking $b) => $this->serialise($b)));
     }
 
+    /** Pay for a slot being held pending payment. */
+    public function pay(Request $request, Booking $booking): JsonResponse
+    {
+        $this->authorize('manage', $booking);
+
+        $payment = app(\App\Modules\Payments\Services\PaymentService::class)->payForBooking($booking);
+
+        return response()->json([
+            'id' => $payment->id,
+            'status' => $payment->status,
+            'checkout_url' => $payment->meta['checkout_url'] ?? null,
+            'booking_state' => $booking->refresh()->state,
+        ], 201);
+    }
+
     public function cancel(Request $request, Booking $booking): JsonResponse
     {
         $this->authorize('manage', $booking);

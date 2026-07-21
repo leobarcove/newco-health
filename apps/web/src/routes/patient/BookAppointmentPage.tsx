@@ -49,11 +49,24 @@ export function BookAppointmentPage() {
   })
 
   const book = useMutation({
-    mutationFn: () =>
-      api<{ id: string }>('/bookings', {
+    mutationFn: async () => {
+      const booking = await api<{ id: string; state: string }>('/bookings', {
         method: 'POST',
         body: JSON.stringify({ doctor_id: doctorId, starts_at: slot?.starts_at, complaint }),
-      }),
+      })
+
+      // Slot is held for 15 minutes; pay to confirm (fake gateway settles
+      // instantly; real gateways redirect to checkout).
+      if (booking.state === 'pending_payment') {
+        const payment = await api<{ checkout_url: string | null }>(`/bookings/${booking.id}/pay`, { method: 'POST' })
+        if (payment.checkout_url) {
+          window.location.assign(payment.checkout_url)
+          return booking
+        }
+      }
+
+      return booking
+    },
     onSuccess: () => navigate('/appointments', { replace: true }),
   })
 

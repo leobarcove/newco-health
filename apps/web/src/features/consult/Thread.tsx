@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Message } from '../../lib/api'
 import { echo } from '../../lib/echo'
+import { compressImage, uploadAttachment } from '../../lib/media'
+import { AttachmentMessage } from './AttachmentMessage'
 import { PrescriptionCard } from './PrescriptionCard'
 
 /**
@@ -13,8 +15,51 @@ import { PrescriptionCard } from './PrescriptionCard'
 export function Thread({ consultId, live }: { consultId: string; live: boolean }) {
   const [draft, setDraft] = useState('')
   const [socketUp, setSocketUp] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const recorder = useRef<MediaRecorder | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
   const bottom = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
+
+  const refetchMessages = () => queryClient.invalidateQueries({ queryKey: ['messages', consultId] })
+
+  async function sendImage(file: File) {
+    setUploading(true)
+    try {
+      const blob = await compressImage(file)
+      await uploadAttachment(consultId, 'image', blob, 'photo.jpg')
+      void refetchMessages()
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function toggleRecording() {
+    if (recording) {
+      recorder.current?.stop()
+      setRecording(false)
+      return
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const mediaRecorder = new MediaRecorder(stream)
+    const chunks: Blob[] = []
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data)
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop())
+      setUploading(true)
+      try {
+        await uploadAttachment(consultId, 'voice_note', new Blob(chunks, { type: mediaRecorder.mimeType }), 'voice-note.webm')
+        void refetchMessages()
+      } finally {
+        setUploading(false)
+      }
+    }
+    mediaRecorder.start()
+    recorder.current = mediaRecorder
+    setRecording(true)
+  }
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', consultId],
@@ -64,6 +109,8 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
             </p>
           ) : m.kind === 'prescription' ? (
             <PrescriptionCard key={m.id} prescriptionId={m.body} />
+          ) : (m.kind === 'image' || m.kind === 'voice_note') && m.file_url ? (
+            <AttachmentMessage key={m.id} kind={m.kind} fileUrl={m.file_url} mine={m.mine} />
           ) : (
             <div key={m.id} className={m.mine ? 'flex justify-end' : 'flex justify-start'}>
               <p
@@ -83,7 +130,7 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
 
       {live && (
         <form
-          className="flex gap-2 border-t border-slate-200 bg-white p-3"
+          className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
           onSubmit={(e) => {
             e.preventDefault()
             const body = draft.trim()
@@ -93,15 +140,47 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
           }}
         >
           <input
+            ref={fileInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) void sendImage(file)
+              e.target.value = ''
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            disabled={uploading}
+            aria-label="Attach a photo"
+            className="min-h-12 min-w-12 rounded-full border border-slate-300 text-xl disabled:opacity-50"
+          >
+            📷
+          </button>
+          <button
+            type="button"
+            onClick={() => void toggleRecording()}
+            disabled={uploading}
+            aria-label={recording ? 'Stop and send voice note' : 'Record a voice note'}
+            className={`min-h-12 min-w-12 rounded-full border text-xl disabled:opacity-50 ${
+              recording ? 'animate-pulse border-red-500 bg-red-50' : 'border-slate-300'
+            }`}
+          >
+            {recording ? '■' : '🎙'}
+          </button>
+          <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Type your message…"
-            className="min-h-12 flex-1 rounded-full border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
+            placeholder={recording ? 'Recording… tap ■ to send' : uploading ? 'Sending…' : 'Type your message…'}
+            disabled={recording}
+            className="min-h-12 min-w-0 flex-1 rounded-full border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
           />
           <button
             type="submit"
-            disabled={send.isPending}
-            className="min-h-12 rounded-full bg-emerald-600 px-6 text-base font-semibold text-white disabled:opacity-50"
+            disabled={send.isPending || recording}
+            className="min-h-12 rounded-full bg-emerald-600 px-5 text-base font-semibold text-white disabled:opacity-50"
           >
             Send
           </button>

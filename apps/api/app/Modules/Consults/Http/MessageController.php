@@ -19,10 +19,14 @@ class MessageController extends Controller
             ->limit(100)
             ->get();
 
+        $isAttachment = fn (ConsultMessage $m) => in_array($m->kind, [ConsultMessage::KIND_IMAGE, ConsultMessage::KIND_VOICE_NOTE], true);
+
         return response()->json($messages->map(fn (ConsultMessage $m) => [
             'id' => $m->id,
             'kind' => $m->kind,
-            'body' => $m->body,
+            // Attachment bodies are storage paths — never exposed; clients use file_url.
+            'body' => $isAttachment($m) ? '' : $m->body,
+            'file_url' => $isAttachment($m) ? "/api/consults/{$consult->id}/messages/{$m->id}/file" : null,
             'sender_id' => $m->sender_id,
             'mine' => $m->sender_id === $request->user()->id,
             'created_at' => $m->created_at->toIso8601String(),

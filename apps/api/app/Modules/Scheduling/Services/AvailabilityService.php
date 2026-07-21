@@ -88,9 +88,10 @@ class AvailabilityService
             }
         }
 
-        // Remove already-booked slots.
+        // Remove already-booked slots (pending payments hold the slot too —
+        // they expire after 15 minutes if unpaid).
         $booked = Booking::where('doctor_id', $doctor->id)
-            ->where('state', Booking::STATE_CONFIRMED)
+            ->whereIn('state', Booking::SLOT_HOLDING_STATES)
             ->whereBetween('starts_at', [$localDate->startOfDay()->utc(), $localDate->endOfDay()->addDay()->utc()])
             ->pluck('starts_at')
             ->map(fn ($t) => $t->toIso8601String())

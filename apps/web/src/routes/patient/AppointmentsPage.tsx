@@ -4,7 +4,7 @@ import { api } from '../../lib/api'
 
 interface Booking {
   id: string
-  state: 'confirmed' | 'completed' | 'cancelled' | 'no_show'
+  state: 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
   starts_at: string
   ends_at: string
   doctor: { id: string; name: string }
@@ -28,8 +28,16 @@ export function AppointmentsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
   })
 
-  const upcoming = bookings.filter((b) => b.state === 'confirmed')
-  const past = bookings.filter((b) => b.state !== 'confirmed')
+  const pay = useMutation({
+    mutationFn: (id: string) => api<{ checkout_url: string | null }>(`/bookings/${id}/pay`, { method: 'POST' }),
+    onSuccess: (payment) => {
+      if (payment.checkout_url) window.location.assign(payment.checkout_url)
+      else void queryClient.invalidateQueries({ queryKey: ['bookings'] })
+    },
+  })
+
+  const upcoming = bookings.filter((b) => b.state === 'confirmed' || b.state === 'pending_payment')
+  const past = bookings.filter((b) => b.state !== 'confirmed' && b.state !== 'pending_payment')
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
@@ -49,6 +57,15 @@ export function AppointmentsPage() {
         <div key={b.id} className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
           <p className="text-base font-semibold text-slate-900">Dr {b.doctor.name}</p>
           <p className="mb-3 text-base text-slate-700">{WHEN.format(new Date(b.starts_at))}</p>
+          {b.state === 'pending_payment' && (
+            <button
+              onClick={() => pay.mutate(b.id)}
+              disabled={pay.isPending}
+              className="mb-2 min-h-11 w-full rounded-lg bg-amber-500 text-base font-semibold text-white disabled:opacity-50"
+            >
+              Pay ₦2,500 to confirm — slot held 15 minutes
+            </button>
+          )}
           <div className="flex gap-2">
             {b.consult_id && (
               <Link
