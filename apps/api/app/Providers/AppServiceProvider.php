@@ -20,11 +20,24 @@ class AppServiceProvider extends ServiceProvider
                 : new LogSmsSender();
         });
 
-        // Real gateway activates the moment credentials exist; fake until then.
+        $this->app->bind(\App\Modules\Messaging\Services\WhatsAppSender::class, function () {
+            return config('services.whatsapp.token')
+                ? new \App\Modules\Messaging\Services\MetaWhatsAppSender()
+                : new \App\Modules\Messaging\Services\UnavailableWhatsAppSender();
+        });
+
+        // Real gateways activate the moment credentials exist; fake until then.
+        // Paystack-primary with Flutterwave failover when both are configured.
         $this->app->bind(\App\Modules\Payments\Services\PaymentGateway::class, function () {
-            return config('services.paystack.secret')
-                ? new \App\Modules\Payments\Services\PaystackGateway()
-                : new \App\Modules\Payments\Services\FakeGateway();
+            if (! config('services.paystack.secret')) {
+                return new \App\Modules\Payments\Services\FakeGateway();
+            }
+
+            $paystack = new \App\Modules\Payments\Services\PaystackGateway();
+
+            return config('services.flutterwave.secret')
+                ? new \App\Modules\Payments\Services\FailoverGateway($paystack, new \App\Modules\Payments\Services\FlutterwaveGateway())
+                : $paystack;
         });
     }
 

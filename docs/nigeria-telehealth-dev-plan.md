@@ -132,16 +132,16 @@ One codebase, hard module boundaries (folders + no cross-module model imports; i
 
 | Module | Owns |
 |---|---|
-| `identity` | Auth (phone + OTP via Termii; email/password + 2FA for sponsors/staff), sessions (Sanctum), roles/permissions, consent ledger |
+| `identity` | Auth (phone + OTP via Termii; email/password + 2FA for sponsors/staff), sessions (Sanctum), roles/permissions (consent ledger lives in compliance) |
 | `patients` | Profiles, dependants, medical history vault, sponsor↔beneficiary links + consent toggles |
-| `doctors` | Onboarding, MDCN licence verification + expiry tracking, availability roster, auto-suspension |
-| `consults` | The core state machine (Section 5.4), queue (Redis sorted sets), triage intake, consult threads/messages, Daily.co room orchestration (ported from CLEA's `DailyCoController` pattern) |
+| `doctors` | Onboarding, MDCN licence verification + expiry tracking, auto-suspension (availability lives in scheduling) |
+| `consults` | The core state machine (Section 5.4), queue (DB-ordered by queued_at — transactional and test-friendly; Redis sorted sets remain a §16 scaling lever), triage intake, consult threads/messages, Daily.co room orchestration (ported from CLEA's `DailyCoController` pattern) |
 | `scheduling` | Booked appointments: weekly availability templates + date exceptions (slots generated on demand, never materialised — ADR-004), double-booking guards, reschedule/cancel policies, reminders, no-show sweep; booked consults bypass the queue |
 | `prescribing` | Formulary (Nigerian Essential Medicines List), e-prescriptions, PDF generation, pharmacy routing + pickup codes |
 | `payments` | Paystack primary / Flutterwave failover, NGN + FX checkout, wallets, subscriptions, webhooks, reconciliation |
 | `payouts` | Doctor earnings ledger, weekly payout runs (Paystack Transfers), payout statements |
 | `programmes` | Chronic-care subscriptions, scheduled check-ins, adherence nudges |
-| `messaging` | Termii SMS, WhatsApp Cloud API, FCM/web push — one `Notifier` interface, channel fallback chain (push → WhatsApp → SMS) |
+| `messaging` | Built: `Notifier` fallback chain push → WhatsApp → SMS. Termii + Meta WhatsApp adapters activate on credentials; web push delivery pending the injectManifest service-worker switch (subscriptions table ready) |
 | `compliance` | PHI access audit trail, NDPA data-subject requests, breach workflow, retention jobs |
 
 Conventions: Laravel defaults everywhere (Eloquent, form requests, policies, queued jobs on Redis via Horizon). No CQRS, no event sourcing, no repositories-over-Eloquent ceremony.
@@ -192,9 +192,9 @@ Rules: every transition is an audited event; modality switches (video↔voice↔
 
 ## 7. Data Model (core entities)
 
-`users` (polymorphic role: patient/doctor/sponsor/staff) · `patients` · `dependants` · `sponsorships` (sponsor↔beneficiary, plan, consent flags) · `doctors` (mdcn_licence_no, licence_expires_at, status) · `consults` (state, modality, patient_id, doctor_id, daily_room) · `consult_messages` (canonical record; text/image/voice-note/system) · `consult_notes` (SOAP-lite, doctor-only) · `prescriptions` + `prescription_items` (formulary FK) · `pharmacies` + `fulfilments` (pickup_code, state) · `payments` / `wallets` / `subscriptions` · `payout_batches` + `payout_items` · `programmes` + `programme_enrolments` + `check_ins` · `consents` (append-only) · `phi_access_log` (append-only) · `audit_events` (append-only).
+`users` (polymorphic role: patient/doctor/sponsor/staff) · `patients` · `dependants` · `sponsorships` (sponsor↔beneficiary, plan, consent flags) · `doctors` (mdcn_licence_no, licence_expires_at, status) · `consults` (state, modality, patient_id, doctor_id, daily_room) · `consult_messages` (canonical record; text/image/voice-note/system) · `consult_notes` (SOAP-lite, doctor-only) · `prescriptions` + `prescription_items` (formulary FK) · `pharmacies` + `fulfilments` (pickup_code, state) · `payments` / `wallets` / `subscriptions` · `doctor_earnings` with a shared `PO-` payout reference per run (simpler than separate batch tables — amended to match code) · `programmes` + `programme_enrolments` (check-in cadence as columns, not rows — amended to match code) · `consents` (append-only) · `phi_access_log` (append-only) · `audit_events` (append-only).
 
-PHI columns (names, clinical text, phone) encrypted at rest via Laravel's encrypted casts; keys in env-level KMS. ULIDs for all public IDs.
+PHI columns (names, clinical text, phone) encrypted at rest via Laravel's encrypted casts; keys via APP_KEY today; move to KMS at production deploy. ULIDs for all public IDs.
 
 ---
 
@@ -243,7 +243,7 @@ rollback = redeploy previous tag (api image + web artefact both retained);
 
 **Migration policy (firm):** migrations are never auto-executed on remote servers by CI. Each release's migrations are reviewed for backwards-compatibility (expand → migrate → contract pattern) and run as a **deliberate, human-triggered step** in the deploy runbook, with a tested rollback. Destructive migrations require a second reviewer.
 
-Release cadence: ship whenever green — that is the entire point of the PWA strategy. Patient-visible changes gated behind simple DB-driven feature flags (a `features` table + cached lookup; no third-party flag service).
+Release cadence: ship whenever green — that is the entire point of the PWA strategy. Patient-visible changes will be gated behind simple DB-driven feature flags (a `features` table + cached lookup; **deferred — not yet built**; no third-party flag service).
 
 ---
 
@@ -253,7 +253,7 @@ Release cadence: ship whenever green — that is the entire point of the PWA str
 |---|---|---|
 | API unit/feature | Pest | Consult state machine, payments/webhooks, payouts, prescribing = **near-100%**; everything else pragmatic |
 | Contract | OpenAPI spec is source of truth; `api-client` regenerated in CI; drift fails build | prevents web/api desync |
-| E2E | Playwright | 5 golden journeys only: register→consult→pay, doctor accept→conclude→prescribe, sponsor subscribe→beneficiary consult, pharmacy fulfil, refund |
+| E2E | Playwright | 4 golden journeys (register→consult→chat→conclude, booking, prescription→pharmacy dispense, sponsor→beneficiary) run SERIALLY against one shared API; the refund journey is exempted (staff-only Filament flow) and covered by Pest instead |
 | Load | k6, pre-launch + before campaigns | queue + WebSocket fan-out under 500 concurrent consults |
 | Manual | sprint-end real-device pass on throttled 3G | the budget tables above |
 
@@ -271,7 +271,7 @@ No aspirational 80%-everything mandates — test depth follows blast radius.
 
 **Application hardening**
 - Security headers on both deployables: strict CSP (no third-party scripts except Daily.co/Paystack allow-listed), HSTS preload, frame-ancestors none (except Daily embed route), Referrer-Policy strict.
-- Object storage private-by-default; every file access via short-lived signed URLs; uploads virus-scanned (ClamAV container) before storage.
+- Object storage private-by-default; every file access via short-lived signed URLs; uploads validated by type/size (client canvas re-encode strips EXIF); ClamAV scanning pending — add at deploy.
 - All webhook endpoints: signature verification + idempotency + replay-window checks.
 - CI security gates: secret scanning (gitleaks), SAST (Semgrep OWASP ruleset), `composer audit` + `npm audit` — failing severity blocks merge, weekly scheduled run regardless.
 
@@ -290,7 +290,7 @@ No aspirational 80%-everything mandates — test depth follows blast radius.
 
 ## 13. Delivery Phases
 
-### Phase 0 — Concierge validation (Months 0–3) · ~0.5 dev
+### Phase 0 — Concierge validation (Months 0–3) · ~0.5 dev  ⚠️ *Skipped in practice — build started directly at Phase 1. The validation activities (interviews, pricing tests, concierge consults) remain outstanding and should run against the working product instead.*
 Almost no code: landing page + Paystack payment links + WhatsApp Business + Calendly-style booking + a spreadsheet. **Build nothing that a coordinator can fake.** Meanwhile: register Termii sender ID, WhatsApp business verification, Daily.co + Paystack accounts, NG hosting quotes, repo + CI skeleton.
 
 ### Phase 1 — MVP build (Months 3–7) · 2–3 devs, eight 2-week sprints
@@ -350,7 +350,7 @@ Levers deliberately **not** used at MVP, documented so scaling is a config chang
 - **OpenAPI contract** = every future client (native app if a §2.1 trigger fires, partner HMO integration, USSD gateway) consumes the same API; the backend never changes shape for a new frontend.
 - **Modular monolith** = any module (e.g. `payments`) can be extracted to a service later by keeping its service-class interface; module boundaries are the future microservice seams — if ever needed.
 - **Static SPA** = portable to any host in minutes; no vendor or runtime lock-in.
-- **Multi-country readiness (cheap now, painful later):** country/currency/language live in a `markets` config table from day one — prices, phone validation, formulary, and PSP selection are keyed by market, never hard-coded to Nigeria. Expansion to Ghana/Kenya becomes data + partnerships, not a refactor.
+- **Multi-country readiness (cheap now, painful later):** country/currency/language rules are config-driven today (config/pricing.php, config/booking.php, lang/); promote to a `markets` table when the second market is signed — prices, phone validation, formulary, and PSP selection are keyed by market, never hard-coded to Nigeria. Expansion to Ghana/Kenya becomes data + partnerships, not a refactor.
 - **Tenancy posture — explicitly single-tenant.** One organisation operates the platform. Phase 2 B2B employer/HMO plans are modelled as *payers* (an `organisations` table with memberships and invoicing riding the existing sponsorship pattern), **not** as tenants — no tenant_id scoping anywhere. White-labelling the platform to other healthcare organisations would be a strategy pivot requiring its own ADR and a deliberate tenancy retrofit; do not half-add it speculatively (YAGNI).
 - **AI lane (optional, Phase 3+):** Laravel 13's first-party AI SDK gives a native path to triage-assist or consult summarisation later — behind the same modular boundary (`consults`), and only with NDPC-compliant data handling and clinical sign-off. Not an MVP commitment.
 

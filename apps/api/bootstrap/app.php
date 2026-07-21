@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Modules/Prescribing/Console',
         __DIR__.'/../app/Modules/Consults/Console',
         __DIR__.'/../app/Modules/Payouts/Console',
+        __DIR__.'/../app/Modules/Payments/Console',
         __DIR__.'/../app/Modules/Programmes/Console',
     ])
     ->withBroadcasting(

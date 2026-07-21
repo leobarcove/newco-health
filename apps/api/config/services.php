@@ -44,6 +44,16 @@ return [
         'public' => env('PAYSTACK_PUBLIC_KEY'),
     ],
 
+    'flutterwave' => [
+        'secret' => env('FLUTTERWAVE_SECRET_KEY'),
+        'webhook_secret' => env('FLUTTERWAVE_WEBHOOK_SECRET'),
+    ],
+
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_id' => env('WHATSAPP_PHONE_ID'),
+    ],
+
     'termii' => [
         'key' => env('TERMII_API_KEY'),
         'sender_id' => env('TERMII_SENDER_ID'),

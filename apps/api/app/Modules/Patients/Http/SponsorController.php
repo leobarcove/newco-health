@@ -54,10 +54,57 @@ class SponsorController extends Controller
             return response()->json(['message' => __('Email or password is incorrect.')], 422);
         }
 
+        // TOTP second factor once enabled (dev plan §12: sponsor 2FA).
+        if ($user->getAppAuthenticationSecret() !== null) {
+            $otp = (string) $request->input('otp', '');
+            $valid = $otp !== '' && app(\PragmaRX\Google2FA\Google2FA::class)
+                ->verifyKey($user->getAppAuthenticationSecret(), $otp);
+
+            if (! $valid) {
+                return response()->json([
+                    'message' => __('Enter the 6-digit code from your authenticator app.'),
+                    'code' => 'otp_required',
+                ], 422);
+            }
+        }
+
         return response()->json([
             'token' => $user->createToken('sponsor-portal')->plainTextToken,
             'user' => $user->only(['id', 'name', 'email', 'role']),
         ]);
+    }
+
+    /** Begin TOTP enrolment: a secret + otpauth URI for the authenticator app. */
+    public function setup2fa(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->role === User::ROLE_SPONSOR, 403);
+
+        $google2fa = app(\PragmaRX\Google2FA\Google2FA::class);
+        $secret = $google2fa->generateSecretKey();
+
+        return response()->json([
+            'secret' => $secret,
+            'otpauth_url' => $google2fa->getQRCodeUrl('NewCo Health', $request->user()->email, $secret),
+        ]);
+    }
+
+    /** Confirm enrolment: prove possession of the secret before it activates. */
+    public function enable2fa(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->role === User::ROLE_SPONSOR, 403);
+
+        $data = $request->validate([
+            'secret' => ['required', 'string'],
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        if (! app(\PragmaRX\Google2FA\Google2FA::class)->verifyKey($data['secret'], $data['code'])) {
+            return response()->json(['message' => __("That code didn't match — check your authenticator app.")], 422);
+        }
+
+        $request->user()->saveAppAuthenticationSecret($data['secret']);
+
+        return response()->json(['enabled' => true]);
     }
 
     public function overview(Request $request): JsonResponse

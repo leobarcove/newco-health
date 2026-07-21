@@ -2,7 +2,7 @@
 
 namespace App\Modules\Scheduling\Console;
 
-use App\Modules\Messaging\Services\SmsSender;
+use App\Modules\Messaging\Services\Notifier;
 use App\Modules\Scheduling\Models\Booking;
 use Illuminate\Console\Command;
 
@@ -12,7 +12,7 @@ class SendBookingReminders extends Command
 
     protected $description = 'Send due appointment reminders (runs every five minutes) and sweep no-shows';
 
-    public function handle(SmsSender $sms, \App\Modules\Scheduling\Services\BookingService $bookings): int
+    public function handle(Notifier $notifier, \App\Modules\Scheduling\Services\BookingService $bookings): int
     {
         $sent = 0;
 
@@ -24,9 +24,10 @@ class SendBookingReminders extends Command
                 ->get();
 
             foreach ($due as $booking) {
-                $phone = $booking->patient?->user?->phone;
-                if ($phone !== null) {
-                    $sms->send($phone, __('Reminder: your appointment with Dr :doctor is at :time. Open the app a few minutes early.', [
+                $patientUser = $booking->patient?->user;
+                if ($patientUser !== null) {
+                    // Fallback chain: push → WhatsApp → SMS (dev plan §5.1)
+                    $notifier->notify($patientUser, __('Reminder: your appointment with Dr :doctor is at :time. Open the app a few minutes early.', [
                         'doctor' => $booking->doctor->user->name,
                         'time' => $booking->starts_at->setTimezone($booking->doctor->timezone)->format('H:i, D j M'),
                     ]));

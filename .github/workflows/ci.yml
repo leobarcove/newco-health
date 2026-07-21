@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly dependency/security audit (dev plan §12)
 
 jobs:
   api:
@@ -101,3 +103,11 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: SAST (Semgrep, OWASP rules)
+        run: |
+          pipx install semgrep || pip install semgrep
+          semgrep scan --config p/owasp-top-ten --config p/security-audit --error --exclude vendor --exclude node_modules
+      - name: Dependency audits
+        run: |
+          cd apps/api && composer audit || exit 1
+          cd ../.. && npm audit --audit-level=high

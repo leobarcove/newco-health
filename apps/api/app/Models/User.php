@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -15,7 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'phone', 'role', 'locale', 'pharmacy_id', 'erased_at'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -58,5 +59,26 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->role === self::ROLE_STAFF;
+    }
+
+    // — Filament TOTP MFA (dev plan §12: staff 2FA) —
+
+    public function getAppAuthenticationSecret(): ?string
+    {
+        return $this->app_authentication_secret === null
+            ? null
+            : decrypt($this->app_authentication_secret);
+    }
+
+    public function saveAppAuthenticationSecret(?string $secret): void
+    {
+        $this->forceFill([
+            'app_authentication_secret' => $secret === null ? null : encrypt($secret),
+        ])->save();
+    }
+
+    public function getAppAuthenticationHolderName(): string
+    {
+        return $this->email ?? $this->name;
     }
 }

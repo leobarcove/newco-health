@@ -68,6 +68,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->
     Route::post('programme-enrolments/{enrolment}/cancel', [\App\Modules\Programmes\Http\ProgrammeController::class, 'cancel']);
 
     // Sponsor portal
+    Route::post('sponsor/2fa/setup', [\App\Modules\Patients\Http\SponsorController::class, 'setup2fa']);
+    Route::post('sponsor/2fa/enable', [\App\Modules\Patients\Http\SponsorController::class, 'enable2fa']);
     Route::get('sponsor/overview', [\App\Modules\Patients\Http\SponsorController::class, 'overview']);
     Route::post('sponsor/beneficiaries', [\App\Modules\Patients\Http\SponsorController::class, 'invite']);
     Route::post('sponsor/wallet/topup', [\App\Modules\Patients\Http\SponsorController::class, 'topUp']);

@@ -28,9 +28,12 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->colors([
-                'primary' => Color::Amber,
-            ])
+            // Staff TOTP MFA — required, not optional (dev plan §12)
+            ->multiFactorAuthentication([
+                \Filament\Auth\MultiFactor\App\AppAuthentication::make(),
+            ], isRequired: true)
+            ->brandName('NewCo Health')
+            ->colors(['primary' => \Filament\Support\Colors\Color::Emerald])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
