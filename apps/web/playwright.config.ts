@@ -22,6 +22,9 @@ const apiEnv = {
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
+  // One shared API + database + doctor across all journeys — parallel workers
+  // would cross-contaminate consults (the doctor accepts .first() in queue).
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: 'http://localhost:5173',

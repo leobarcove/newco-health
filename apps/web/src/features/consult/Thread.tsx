@@ -101,10 +101,10 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+      <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-5">
         {messages.map((m) =>
           m.kind === 'system' ? (
-            <p key={m.id} className="mx-auto max-w-xs rounded-lg bg-slate-100 px-3 py-2 text-center text-sm text-slate-600">
+            <p key={m.id} className="mx-auto max-w-xs rounded-full bg-slate-900/6 px-4 py-1.5 text-center text-[13px] font-medium text-slate-500">
               {m.body}
             </p>
           ) : m.kind === 'prescription' ? (
@@ -116,8 +116,8 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
               <p
                 className={
                   m.mine
-                    ? 'max-w-[80%] rounded-2xl rounded-br-sm bg-emerald-600 px-4 py-2 text-white'
-                    : 'max-w-[80%] rounded-2xl rounded-bl-sm bg-white px-4 py-2 text-slate-900 shadow-sm'
+                    ? 'max-w-[80%] rounded-3xl rounded-br-md bg-emerald-600 px-4 py-2.5 text-[15px] leading-relaxed text-white shadow-sm shadow-emerald-600/20'
+                    : 'max-w-[80%] rounded-3xl rounded-bl-md border border-slate-900/6 bg-white px-4 py-2.5 text-[15px] leading-relaxed text-slate-900 shadow-xs'
                 }
               >
                 {m.body}
@@ -130,7 +130,7 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
 
       {live && (
         <form
-          className="flex items-center gap-2 border-t border-slate-200 bg-white p-3"
+          className="flex items-center gap-2 border-t border-slate-900/8 bg-white p-3"
           onSubmit={(e) => {
             e.preventDefault()
             const body = draft.trim()
@@ -155,34 +155,49 @@ export function Thread({ consultId, live }: { consultId: string; live: boolean }
             onClick={() => fileInput.current?.click()}
             disabled={uploading}
             aria-label="Attach a photo"
-            className="min-h-12 min-w-12 rounded-full border border-slate-300 text-xl disabled:opacity-50"
+            className="grid size-12 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-900/5 hover:text-slate-800 disabled:opacity-45"
           >
-            📷
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="size-5.5">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
           </button>
           <button
             type="button"
             onClick={() => void toggleRecording()}
             disabled={uploading}
             aria-label={recording ? 'Stop and send voice note' : 'Record a voice note'}
-            className={`min-h-12 min-w-12 rounded-full border text-xl disabled:opacity-50 ${
-              recording ? 'animate-pulse border-red-500 bg-red-50' : 'border-slate-300'
+            className={`grid size-12 shrink-0 place-items-center rounded-full transition disabled:opacity-45 ${
+              recording
+                ? 'animate-pulse bg-red-600 text-white'
+                : 'text-slate-500 hover:bg-slate-900/5 hover:text-slate-800'
             }`}
           >
-            {recording ? '■' : '🎙'}
+            {recording ? (
+              <span className="size-4 rounded-sm bg-white" aria-hidden="true" />
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="size-5.5">
+                <rect x="9" y="2" width="6" height="12" rx="3" />
+                <path d="M5 10a7 7 0 0 0 14 0M12 19v3" />
+              </svg>
+            )}
           </button>
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={recording ? 'Recording… tap ■ to send' : uploading ? 'Sending…' : 'Type your message…'}
+            placeholder={recording ? 'Recording… tap to send' : uploading ? 'Sending…' : 'Type your message…'}
             disabled={recording}
-            className="min-h-12 min-w-0 flex-1 rounded-full border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
+            className="min-h-12 min-w-0 flex-1 rounded-full border border-slate-300/80 bg-canvas px-5 text-[15px] outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/15"
           />
           <button
             type="submit"
             disabled={send.isPending || recording}
-            className="min-h-12 rounded-full bg-emerald-600 px-5 text-base font-semibold text-white disabled:opacity-50"
+            aria-label="Send message"
+            className="grid size-12 shrink-0 place-items-center rounded-full bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
           >
-            Send
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5 translate-x-px">
+              <path d="m5 12 14-7-4 7 4 7-14-7ZM19 12H9" />
+            </svg>
           </button>
         </form>
       )}

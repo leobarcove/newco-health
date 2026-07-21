@@ -17,7 +17,7 @@ test('patient and doctor complete a chat consult end-to-end', async ({ browser }
   await patient.getByRole('button', { name: 'Send my code' }).click()
   await patient.getByPlaceholder('••••••').fill('000000')
   await patient.getByRole('button', { name: 'Sign in' }).click()
-  await expect(patient.getByRole('heading', { name: 'How can we help today?' })).toBeVisible()
+  await expect(patient.getByRole('heading', { name: /How can we help/ })).toBeVisible()
 
   // — Intake with first-time consent
   await patient.getByRole('link', { name: 'Talk to a doctor now' }).click()

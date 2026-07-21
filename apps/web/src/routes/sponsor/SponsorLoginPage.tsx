@@ -54,7 +54,7 @@ export function SponsorLoginPage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
-          className="min-h-13 rounded-xl border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
+          className="min-h-13 rounded-2xl border border-slate-300/80 px-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
         />
       )}
       <input
@@ -62,25 +62,25 @@ export function SponsorLoginPage() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email address"
-        className="min-h-13 rounded-xl border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
+        className="min-h-13 rounded-2xl border border-slate-300/80 px-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
       />
       <input
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder={mode === 'register' ? 'Password (10+ characters)' : 'Password'}
-        className="min-h-13 rounded-xl border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
+        className="min-h-13 rounded-2xl border border-slate-300/80 px-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
       />
 
       <button
         onClick={submit}
         disabled={busy || !email || !password || (mode === 'register' && !name)}
-        className="min-h-14 rounded-xl bg-emerald-600 text-lg font-semibold text-white disabled:opacity-50"
+        className="min-h-13 rounded-2xl bg-emerald-600 text-base font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
       >
         {busy ? 'One moment…' : mode === 'login' ? 'Sign in' : 'Create account'}
       </button>
 
-      {error && <p className="rounded-xl bg-red-50 p-3 text-base text-red-700">{error}</p>}
+      {error && <p className="rounded-2xl bg-red-50 p-4 text-base text-red-700">{error}</p>}
     </main>
   )
 }

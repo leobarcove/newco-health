@@ -47,7 +47,7 @@ export function AppointmentsPage() {
       </header>
 
       {upcoming.length === 0 && (
-        <div className="flex flex-col gap-3 rounded-xl bg-slate-100 p-6 text-center">
+        <div className="flex flex-col gap-3 rounded-2xl bg-slate-900/5 p-6 text-center">
           <p className="text-base text-slate-600">No upcoming appointments.</p>
           <Link to="/book" className="text-base font-semibold text-emerald-700 underline">Book one now</Link>
         </div>
@@ -96,7 +96,7 @@ export function AppointmentsPage() {
           <h2 className="mb-2 text-base font-medium text-slate-500">Past</h2>
           <ul className="flex flex-col gap-2">
             {past.map((b) => (
-              <li key={b.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
+              <li key={b.id} className="flex items-center justify-between rounded-2xl border border-slate-900/8 bg-white shadow-xs p-4">
                 <div>
                   <p className="text-base text-slate-900">Dr {b.doctor.name}</p>
                   <p className="text-sm text-slate-500">{WHEN.format(new Date(b.starts_at))}</p>

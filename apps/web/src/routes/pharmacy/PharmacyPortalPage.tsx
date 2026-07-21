@@ -55,7 +55,7 @@ export function PharmacyPortalPage() {
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="RX-XXXXXXXX"
           autoFocus
-          className="min-h-14 flex-1 rounded-xl border border-slate-300 px-4 font-mono text-lg tracking-widest outline-none focus:border-emerald-600"
+          className="min-h-14 flex-1 rounded-2xl border border-slate-300/80 px-4 font-mono text-lg tracking-widest outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
         />
         <button
           type="submit"
@@ -67,7 +67,7 @@ export function PharmacyPortalPage() {
       </form>
 
       {lookup.isError && (
-        <p className="rounded-xl bg-red-50 p-4 text-base text-red-700">
+        <p className="rounded-2xl bg-red-50 p-4 text-base text-red-700">
           No active prescription with that code. Check the code with the patient — it may already be collected.
         </p>
       )}
@@ -100,7 +100,7 @@ export function PharmacyPortalPage() {
             <button
               onClick={() => dispense.mutate()}
               disabled={dispense.isPending}
-              className="min-h-14 w-full rounded-xl bg-emerald-600 text-lg font-semibold text-white disabled:opacity-50"
+              className="min-h-13 w-full rounded-2xl bg-emerald-600 text-base font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
             >
               {dispense.isPending ? 'Recording…' : 'Mark as dispensed'}
             </button>

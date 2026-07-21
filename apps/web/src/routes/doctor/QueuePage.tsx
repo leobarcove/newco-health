@@ -1,6 +1,8 @@
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
+import { ConsoleShell, PageTitle } from '../../ui/shells'
+import { Badge, Card, EmptyState } from '../../ui/primitives'
 
 interface QueueItem {
   id: string
@@ -13,7 +15,7 @@ export function QueuePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data: queue = [] } = useQuery({
+  const { data: queue = [], isLoading } = useQuery({
     queryKey: ['doctor-queue'],
     queryFn: () => api<QueueItem[]>('/doctor/queue'),
     refetchInterval: 5000,
@@ -28,39 +30,55 @@ export function QueuePage() {
   })
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-4 p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Waiting patients</h1>
-        <nav className="flex gap-4 text-base">
-          <Link to="/doctor/agenda" className="text-slate-500 underline">Agenda</Link>
-          <Link to="/doctor/availability" className="text-slate-500 underline">Availability</Link>
-          <Link to="/doctor/earnings" className="text-slate-500 underline">Earnings</Link>
-        </nav>
-      </header>
+    <ConsoleShell active="queue">
+      <div className="mb-6 flex items-end justify-between">
+        <PageTitle sub="Patients are ordered by how long they've been waiting.">Waiting patients</PageTitle>
+        {queue.length > 0 && <Badge tone="warning">{queue.length} waiting</Badge>}
+      </div>
 
-      {queue.length === 0 ? (
-        <p className="rounded-xl bg-slate-100 p-6 text-center text-base text-slate-600">
-          No one is waiting right now. We'll refresh automatically.
-        </p>
+      {isLoading ? (
+        <div className="space-y-3">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-3xl bg-slate-900/5" />
+          ))}
+        </div>
+      ) : queue.length === 0 ? (
+        <EmptyState
+          icon="queue"
+          title="No one is waiting right now"
+          hint="New patients appear here the moment they join the queue — this board refreshes itself every few seconds."
+        />
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="space-y-3">
           {queue.map((item, index) => (
-            <li key={item.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
-              <div>
-                <p className="text-base font-medium text-slate-900">Patient #{index + 1}</p>
-                <p className="text-sm text-slate-500">Waiting {item.waiting_minutes} min</p>
-              </div>
-              <button
-                onClick={() => accept.mutate(item.id)}
-                disabled={accept.isPending}
-                className="min-h-12 rounded-xl bg-emerald-600 px-6 text-base font-semibold text-white disabled:opacity-50"
-              >
-                Accept
-              </button>
+            <li key={item.id}>
+              <Card className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-emerald-600/10 text-base font-bold text-emerald-700">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-base font-semibold text-slate-900">Next patient</p>
+                    <p className="mt-0.5 text-sm text-slate-500">
+                      Waiting{' '}
+                      <span className={item.waiting_minutes >= 15 ? 'font-semibold text-amber-700' : ''}>
+                        {item.waiting_minutes} min
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => accept.mutate(item.id)}
+                  disabled={accept.isPending}
+                  className="inline-flex min-h-12 items-center rounded-2xl bg-emerald-600 px-6 text-base font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
+                >
+                  Accept
+                </button>
+              </Card>
             </li>
           ))}
         </ul>
       )}
-    </main>
+    </ConsoleShell>
   )
 }

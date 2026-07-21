@@ -6,7 +6,7 @@ async function signInPatient(page: import('@playwright/test').Page, phone: strin
   await page.getByRole('button', { name: 'Send my code' }).click()
   await page.getByPlaceholder('••••••').fill('000000')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: 'How can we help today?' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /How can we help/ })).toBeVisible()
 }
 
 /** Golden journey #2: book an appointment → see it upcoming → cancel it. */

@@ -48,7 +48,7 @@ export function PrescribePanel({ consultId }: { consultId: string }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search the formulary…"
-          className="rounded-lg border border-slate-300 p-2 text-sm outline-none focus:border-emerald-600"
+          className="rounded-lg border border-slate-300 p-2 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
         />
       </label>
 
@@ -89,7 +89,7 @@ export function PrescribePanel({ consultId }: { consultId: string }) {
             value={item.dosage}
             onChange={(e) => setItems(items.map((it, i) => (i === index ? { ...it, dosage: e.target.value } : it)))}
             placeholder="Dosage, e.g. 1 tablet twice daily"
-            className="mb-2 w-full rounded-lg border border-slate-300 p-2 text-sm outline-none focus:border-emerald-600"
+            className="mb-2 w-full rounded-lg border border-slate-300 p-2 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
           />
           <label className="flex items-center gap-2 text-sm text-slate-600">
             for

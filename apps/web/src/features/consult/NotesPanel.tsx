@@ -58,7 +58,7 @@ export function NotesPanel({ consultId }: { consultId: string }) {
             }}
             rows={2}
             placeholder={hint}
-            className="rounded-lg border border-slate-300 p-2 text-sm outline-none focus:border-emerald-600"
+            className="rounded-lg border border-slate-300 p-2 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
           />
         </label>
       ))}

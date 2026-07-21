@@ -94,7 +94,7 @@ export function BookAppointmentPage() {
             </li>
           ))}
           {doctors.length === 0 && (
-            <p className="rounded-xl bg-slate-100 p-4 text-base text-slate-600">
+            <p className="rounded-2xl bg-slate-900/5 p-4 text-base text-slate-600">
               No doctors are taking bookings right now — try an instant consult instead.
             </p>
           )}
@@ -126,7 +126,7 @@ export function BookAppointmentPage() {
           {slotsLoading ? (
             <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
           ) : slots.length === 0 ? (
-            <p className="rounded-xl bg-slate-100 p-4 text-base text-slate-600">No free times this day — try another day.</p>
+            <p className="rounded-2xl bg-slate-900/5 p-4 text-base text-slate-600">No free times this day — try another day.</p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {slots.map((s) => (
@@ -155,17 +155,17 @@ export function BookAppointmentPage() {
             onChange={(e) => setComplaint(e.target.value)}
             rows={3}
             placeholder="e.g. Follow-up on my blood pressure…"
-            className="rounded-xl border border-slate-300 p-4 text-base outline-none focus:border-emerald-600"
+            className="rounded-2xl border border-slate-300/80 p-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
           />
           <button
             onClick={() => book.mutate()}
             disabled={book.isPending}
-            className="min-h-14 rounded-xl bg-emerald-600 text-lg font-semibold text-white disabled:opacity-50"
+            className="min-h-13 rounded-2xl bg-emerald-600 text-base font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
           >
             {book.isPending ? 'Booking…' : `Confirm — ${LAGOS_DAY.format(new Date(slot.starts_at))}, ${LAGOS_TIME.format(new Date(slot.starts_at))}`}
           </button>
           {book.isError && (
-            <p className="rounded-xl bg-red-50 p-3 text-base text-red-700">
+            <p className="rounded-2xl bg-red-50 p-4 text-base text-red-700">
               That time may have just been taken — please pick another slot.
             </p>
           )}

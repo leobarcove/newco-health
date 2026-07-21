@@ -68,12 +68,12 @@ export function SponsorDashboardPage() {
       {/* Beneficiaries — the emotional centre of the page */}
       <section className="flex flex-col gap-3">
         {data.beneficiaries.length === 0 && (
-          <p className="rounded-xl bg-slate-100 p-5 text-base text-slate-600">
+          <p className="rounded-2xl bg-slate-900/5 p-5 text-base text-slate-600">
             Add a family member below — they'll get an SMS and accept with one tap.
           </p>
         )}
         {data.beneficiaries.map((b) => (
-          <div key={b.sponsorship_id} className="rounded-xl border border-slate-200 bg-white p-4">
+          <div key={b.sponsorship_id} className="rounded-2xl border border-slate-900/8 bg-white shadow-xs p-4">
             <div className="flex items-center justify-between">
               <p className="text-lg font-semibold text-slate-900">{b.label}</p>
               <span
@@ -109,7 +109,7 @@ export function SponsorDashboardPage() {
           <select
             value={topUpAmount}
             onChange={(e) => setTopUpAmount(Number(e.target.value))}
-            className="min-h-12 rounded-xl border border-slate-300 px-3 text-base"
+            className="min-h-12 rounded-2xl border border-slate-300/80 px-3 text-base"
           >
             {[5000, 10000, 25000, 50000].map((n) => (
               <option key={n} value={n}>₦{n.toLocaleString()}</option>
@@ -126,22 +126,22 @@ export function SponsorDashboardPage() {
       </section>
 
       {/* Invite */}
-      <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <section className="flex flex-col gap-3 rounded-2xl border border-slate-900/8 bg-white shadow-xs p-4">
         <h2 className="text-base font-semibold text-slate-900">Add a family member</h2>
         <input
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Who are they to you? e.g. Mum"
-          className="min-h-12 rounded-xl border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
+          className="min-h-12 rounded-2xl border border-slate-300/80 px-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
         />
         <div className="flex items-stretch gap-2">
-          <span className="flex items-center rounded-xl border border-slate-300 bg-slate-50 px-3 text-base text-slate-700">+234</span>
+          <span className="flex items-center rounded-2xl border border-slate-300/80 bg-slate-50 px-3 text-base text-slate-700">+234</span>
           <input
             inputMode="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
             placeholder="Their phone number"
-            className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 text-base outline-none focus:border-emerald-600"
+            className="min-h-12 flex-1 rounded-2xl border border-slate-300/80 px-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
           />
         </div>
         <button

@@ -94,7 +94,7 @@ export function IntakePage() {
           onChange={(e) => setComplaint(e.target.value)}
           rows={4}
           placeholder="e.g. Fever and headache since Monday…"
-          className="rounded-xl border border-slate-300 p-4 text-base outline-none focus:border-emerald-600"
+          className="rounded-2xl border border-slate-300/80 p-4 text-base outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/15"
         />
       </label>
 
@@ -118,7 +118,7 @@ export function IntakePage() {
       <button
         onClick={() => start.mutate()}
         disabled={start.isPending || complaint.trim().length < 5}
-        className="min-h-14 rounded-xl bg-emerald-600 text-lg font-semibold text-white disabled:opacity-50"
+        className="min-h-13 rounded-2xl bg-emerald-600 text-base font-semibold text-white shadow-sm shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-45"
       >
         {start.isPending ? 'Starting…' : 'See a doctor'}
       </button>
@@ -141,7 +141,7 @@ export function IntakePage() {
       )}
 
       {start.isError && !consentNeeded && (
-        <p className="rounded-xl bg-red-50 p-3 text-base text-red-700">
+        <p className="rounded-2xl bg-red-50 p-4 text-base text-red-700">
           We couldn't start your consult. You haven't been charged — please try again.
         </p>
       )}
