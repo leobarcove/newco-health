@@ -1,0 +1,10 @@
+node_modules/
+vendor/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+.phpunit.cache/
+storage/*.key

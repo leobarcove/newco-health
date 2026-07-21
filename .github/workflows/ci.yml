@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: pdo_pgsql, redis
+          coverage: none
+      - name: Install dependencies
+        working-directory: apps/api
+        run: composer install --prefer-dist --no-progress --no-interaction
+      - name: Run Pest
+        working-directory: apps/api
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint & typecheck & build
+        run: |
+          npm run lint --workspace apps/web
+          npm run build --workspace apps/web
+      - name: Enforce first-load JS budget (≤ 200 KB gzipped)
+        run: |
+          total=0
+          # Entry chunks only: what the browser must download before first paint.
+          for f in $(node -e "
+            const m=require('./apps/web/dist/.vite/manifest.json');
+            Object.values(m).filter(e=>e.isEntry).forEach(e=>console.log('apps/web/dist/'+e.file));
+          " 2>/dev/null || ls apps/web/dist/assets/*.js); do
+            size=$(gzip -c "$f" | wc -c)
+            total=$((total + size))
+          done
+          echo "First-load JS (gzipped): ${total} bytes"
+          if [ "$total" -gt 204800 ]; then
+            echo "::error::First-load JS budget exceeded: ${total} > 204800 bytes (dev plan §8)"
+            exit 1
+          fi
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
