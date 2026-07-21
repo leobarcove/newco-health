@@ -1,0 +1,76 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router'
+import { useMutation } from '@tanstack/react-query'
+import { api, type Consult } from '../../lib/api'
+
+/** Red-flag screen first — emergencies must never sit in a queue (startup plan §10). */
+const RED_FLAG_QUESTIONS: { key: string; label: string }[] = [
+  { key: 'chest_pain', label: 'Crushing chest pain right now' },
+  { key: 'severe_breathing_difficulty', label: 'Severe difficulty breathing' },
+  { key: 'uncontrolled_bleeding', label: 'Bleeding that will not stop' },
+  { key: 'loss_of_consciousness', label: 'Fainted or lost consciousness' },
+]
+
+export function IntakePage() {
+  const [complaint, setComplaint] = useState('')
+  const [flags, setFlags] = useState<Record<string, boolean>>({})
+  const navigate = useNavigate()
+
+  const start = useMutation({
+    mutationFn: () =>
+      api<Consult>('/consults', {
+        method: 'POST',
+        body: JSON.stringify({ complaint, answers: flags }),
+      }),
+    onSuccess: (consult) => navigate(`/consult/${consult.id}`, { replace: true }),
+  })
+
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-6 p-6">
+      <h1 className="text-2xl font-bold text-slate-900">Tell us what's wrong</h1>
+
+      <label className="flex flex-col gap-2">
+        <span className="text-base font-medium text-slate-700">Describe how you're feeling</span>
+        <textarea
+          autoFocus
+          value={complaint}
+          onChange={(e) => setComplaint(e.target.value)}
+          rows={4}
+          placeholder="e.g. Fever and headache since Monday…"
+          className="rounded-xl border border-slate-300 p-4 text-base outline-none focus:border-emerald-600"
+        />
+      </label>
+
+      <fieldset className="flex flex-col gap-3">
+        <legend className="mb-1 text-base font-medium text-slate-700">
+          Tick any that apply <span className="text-slate-500">(this helps us act fast)</span>
+        </legend>
+        {RED_FLAG_QUESTIONS.map((q) => (
+          <label key={q.key} className="flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 px-4">
+            <input
+              type="checkbox"
+              checked={flags[q.key] ?? false}
+              onChange={(e) => setFlags({ ...flags, [q.key]: e.target.checked })}
+              className="size-5 accent-emerald-600"
+            />
+            <span className="text-base text-slate-800">{q.label}</span>
+          </label>
+        ))}
+      </fieldset>
+
+      <button
+        onClick={() => start.mutate()}
+        disabled={start.isPending || complaint.trim().length < 5}
+        className="min-h-14 rounded-xl bg-emerald-600 text-lg font-semibold text-white disabled:opacity-50"
+      >
+        {start.isPending ? 'Starting…' : 'See a doctor'}
+      </button>
+
+      {start.isError && (
+        <p className="rounded-xl bg-red-50 p-3 text-base text-red-700">
+          We couldn't start your consult. You haven't been charged — please try again.
+        </p>
+      )}
+    </main>
+  )
+}

@@ -32,6 +32,8 @@ make test          # Pest (api) + typecheck/build (web)
 
 Local PHP is at `/usr/local/opt/php@8.3/bin/php` (system default is 8.1 — too old; always use the 8.3 binary or `make` targets which handle it).
 
+**Known gotcha:** Laravel 13 ships `laravel/pao`, which intercepts console stdout when it detects an AI agent and can crash silently (stream_filter flush bug), making pest/artisan produce NO output. Always run tests as `PAO_DISABLE=1 php vendor/bin/pest`.
+
 ## Conventions
 
 - Trunk-based: small PRs to `main`; staging auto-deploys from `main`; production deploys from tags (`vX.Y.Z`).

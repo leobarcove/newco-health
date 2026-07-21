@@ -20,10 +20,12 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-interaction
       - name: Run Pest
         working-directory: apps/api
+        env:
+          PAO_DISABLE: "1"
         run: |
           cp .env.example .env
           php artisan key:generate
-          php artisan test
+          php vendor/bin/pest
 
   web:
     runs-on: ubuntu-latest

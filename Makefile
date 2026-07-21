@@ -15,7 +15,7 @@ web:
 	npm run dev --workspace apps/web
 
 test:
-	cd apps/api && $(PHP) artisan test
+	cd apps/api && PAO_DISABLE=1 $(PHP) vendor/bin/pest
 	npm run build --workspace apps/web
 
 build:
