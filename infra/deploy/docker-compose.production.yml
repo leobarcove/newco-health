@@ -1,0 +1,59 @@
+# Production stack — one app VM (dev plan §9). PHI stays in-country (NITDA L3).
+# Postgres runs on its own VM/managed service; this compose expects DB_* in .env.
+name: newco-health-production
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - web-dist:/srv/web:ro
+      - caddy-data:/data
+    depends_on: [api]
+
+  api:
+    image: ghcr.io/leobarcove/newco-health-api:${TAG:?set TAG to the release tag}
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - storage:/var/www/html/storage/app
+    healthcheck:
+      test: ["CMD", "php", "artisan", "about", "--only=environment"]
+      interval: 30s
+      retries: 3
+
+  queue:
+    image: ghcr.io/leobarcove/newco-health-api:${TAG}
+    restart: unless-stopped
+    env_file: .env.production
+    command: php artisan queue:work --tries=3 --max-time=3600
+    volumes:
+      - storage:/var/www/html/storage/app
+
+  scheduler:
+    image: ghcr.io/leobarcove/newco-health-api:${TAG}
+    restart: unless-stopped
+    env_file: .env.production
+    command: php artisan schedule:work
+    volumes:
+      - storage:/var/www/html/storage/app
+
+  reverb:
+    image: ghcr.io/leobarcove/newco-health-api:${TAG}
+    restart: unless-stopped
+    env_file: .env.production
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+volumes:
+  web-dist:
+  caddy-data:
+  storage:
+  redis-data:

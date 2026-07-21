@@ -38,17 +38,44 @@ export function IntakePage() {
     queryFn: () => api<Dependant[]>('/dependants'),
   })
 
+  const [queuedOffline, setQueuedOffline] = useState(false)
+
   const start = useMutation({
     mutationFn: () =>
-      api<Consult>('/consults', {
+      api<Consult & { queued_offline?: boolean }>('/consults', {
         method: 'POST',
         body: JSON.stringify({ complaint, answers: flags, dependant_id: forDependant }),
       }),
-    onSuccess: (consult) => navigate(`/consult/${consult.id}`, { replace: true }),
+    onSuccess: (consult) => {
+      // The service worker queued it — no signal (business plan §6 rule 3).
+      if (consult.queued_offline) {
+        setQueuedOffline(true)
+        return
+      }
+      navigate(`/consult/${consult.id}`, { replace: true })
+    },
     onError: (e) => {
       if (e instanceof ApiError && e.status === 428) setConsentNeeded(true)
     },
   })
+
+  if (queuedOffline) {
+    return (
+      <Shell back="/">
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-emerald-600/25 bg-emerald-50/70 px-6 py-12 text-center">
+          <span className="grid size-16 place-items-center rounded-2xl bg-emerald-600/10">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-8 text-emerald-700" aria-hidden="true">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          <p className="text-lg font-semibold text-slate-900">Saved — you're offline right now</p>
+          <p className="max-w-xs text-[15px] leading-relaxed text-slate-600">
+            We'll send your consult request the moment your connection returns. You don't need to do anything.
+          </p>
+        </div>
+      </Shell>
+    )
+  }
 
   const consent = useMutation({
     mutationFn: () =>

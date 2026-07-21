@@ -1,0 +1,36 @@
+# Production edge (behind Cloudflare — dev plan §9).
+# Replace app.example.ng with the real domain at hosting decision.
+
+app.example.ng {
+	encode zstd gzip
+
+	# Security headers for the static SPA (API/Filament set their own).
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss://app.example.ng https://*.daily.co; frame-src https://*.daily.co https://checkout.paystack.com; base-uri 'self'; frame-ancestors 'none'"
+	}
+
+	# API + Filament backoffice + websockets → Laravel
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /admin* {
+		reverse_proxy api:8000
+	}
+	handle /app/* {
+		reverse_proxy reverb:8080
+	}
+	handle /up {
+		reverse_proxy api:8000
+	}
+
+	# Everything else: the static SPA (atomic-swap dist folder)
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -54,6 +54,12 @@ return [
         'phone_id' => env('WHATSAPP_PHONE_ID'),
     ],
 
+    'vapid' => [
+        'public' => env('VAPID_PUBLIC_KEY'),
+        'private' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:security@newco.example'),
+    ],
+
     'termii' => [
         'key' => env('TERMII_API_KEY'),
         'sender_id' => env('TERMII_SENDER_ID'),

@@ -1,0 +1,63 @@
+name: Deploy
+
+# Production deploys from tags only (dev plan §10). Requires repo secrets:
+#   DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY — set at hosting decision.
+# Migrations are NEVER run here — human-triggered per the runbook.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }} # flip on once hosting exists
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker build -f infra/deploy/Dockerfile.api -t ghcr.io/${{ github.repository }}-api:${{ github.ref_name }} .
+          docker push ghcr.io/${{ github.repository }}-api:${{ github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - name: Build SPA
+        run: |
+          npm ci
+          npm run build --workspace apps/web
+
+      - name: Ship
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /srv/newco-health
+            export TAG=${{ github.ref_name }}
+            docker compose -f docker-compose.production.yml pull api
+            docker compose -f docker-compose.production.yml up -d --no-deps api queue scheduler reverb
+      - name: Ship SPA (atomic swap)
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "apps/web/dist/*"
+          target: "/srv/newco-health/web-dist-incoming"
+          strip_components: 3
+      - name: Activate SPA
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /srv/newco-health
+            rm -rf web-dist-previous && mv web-dist web-dist-previous || true
+            mv web-dist-incoming web-dist

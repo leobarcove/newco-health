@@ -33,6 +33,10 @@ reverb:
 queue:
 	cd apps/api && $(PHP) artisan schedule:work
 
+## watch simulated outbound SMS/WhatsApp (OTPs, reminders, nudges)
+sms:
+	tail -f apps/api/storage/logs/laravel.log | grep --line-buffered sms.outbound
+
 test:
 	cd apps/api && PAO_DISABLE=1 $(PHP) vendor/bin/pest
 	npm run build --workspace apps/web

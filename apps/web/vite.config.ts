@@ -11,6 +11,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+      },
       manifest: {
         name: 'NewCo Health',
         short_name: 'NewCo',
@@ -24,27 +30,8 @@ export default defineConfig({
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
-      workbox: {
-        // Keep the service worker minimal: app-shell cache + offline queue only
-        // (dev plan §16 — resist cleverness here).
-        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
-        runtimeCaching: [
-          {
-            // Offline intake: consult submissions made without signal queue in
-            // IndexedDB and replay via Background Sync when the network returns
-            // (business plan §6 rule 3).
-            urlPattern: /\/api\/consults$/,
-            method: 'POST',
-            handler: 'NetworkOnly',
-            options: {
-              backgroundSync: {
-                name: 'consult-intake-queue',
-                options: { maxRetentionTime: 24 * 60 }, // minutes
-              },
-            },
-          },
-        ],
-      },
+      // Worker logic lives in src/sw.ts (precache + offline intake queue +
+      // push) — injectManifest so we control the code, kept minimal.
     }),
   ],
   server: {

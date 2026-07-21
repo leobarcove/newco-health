@@ -118,7 +118,7 @@ newco-health/
 ├── docs/
 │   ├── adr/                  # architecture decision records (one page each)
 │   └── runbooks/             # deploy, incident, restore-from-backup
-└── .github/workflows/        # ci.yml (deploy-*.yml written at hosting decision)
+└── .github/workflows/        # ci.yml + deploy.yml (tag-driven; flips on via DEPLOY_ENABLED once hosting exists)
 ```
 
 (No turborepo needed with a single JS app — plain npm workspaces suffice; add build orchestration only if a second JS app ever appears.)
@@ -151,7 +151,7 @@ Conventions: Laravel defaults everywhere (Eloquent, form requests, policies, que
 
 - Static build served by Caddy/Cloudflare — **no server runtime**; a deploy is an atomic swap of a files folder.
 - **Service worker via `vite-plugin-pwa` (Workbox)**: offline app shell + background-sync queue for form submissions (intake completed offline syncs when signal returns).
-- Installable manifest; web push (VAPID) — subscriptions table ready, subscribe endpoints + custom SW **pending** (Notifier reaches users via WhatsApp/SMS meanwhile).
+- Installable manifest; web push (VAPID) — **built end-to-end**: injectManifest custom SW (precache + offline intake queue + push display), subscribe endpoints, WebPushSender as the Notifier chain's first rung, contextual permission ask on the queued screen.
 - Routing: React Router route groups `patient/`, `doctor/`, `sponsor/`; lazy-loaded per group so each audience downloads only its slice.
 - Chat UI = the canonical consult surface; renders from local cache first, reconciles with server.
 - **Video via Daily.co Prebuilt** embedded component — we do not build a call UI in v1; connection-quality gate decides whether the "upgrade to video" button even appears.
@@ -187,7 +187,7 @@ Rules: every transition is an audited event; modality switches (video↔voice↔
 | **Daily.co** | Server-side room + short-lived meeting tokens (CLEA pattern); rooms named by consult ULID; auto-expire | Voice-only fallback on same room; PSTN coordinator callback as last rung |
 | **Termii** | OTP + transactional SMS, sender ID registration early (takes weeks — start Month 0) | Queue with retry/backoff |
 | **WhatsApp Cloud API** | Template messages (reminders, prescription-ready, payment links); inbound routed to care coordinators in admin | Business verification takes weeks — start Month 0 |
-| **Push** | Web push (VAPID) for PWA — native-grade on installed Android PWAs. **Delivery pending**: needs the injectManifest service-worker switch + subscribe endpoints (push_subscriptions table ready; Notifier chain falls through to WhatsApp/SMS meanwhile). FCM only if/when TWA ships | Nigerian reality: Transsion (Tecno/Infinix/itel) battery optimisers can delay background delivery — for native apps too — so critical alerts always cascade push → WhatsApp → SMS, and the sprint device bench includes a Tecno. Web push cannot do full-screen call ringing (a §2.1 native trigger, not needed for patient-initiated consults) |
+| **Push** | Web push (VAPID) — **built**: self-generated VAPID keys (no third party), custom SW display + click-through, expired subscriptions self-prune on send. Chain falls through to WhatsApp/SMS on any failure. FCM only if/when TWA ships | Nigerian reality: Transsion (Tecno/Infinix/itel) battery optimisers can delay background delivery — for native apps too — so critical alerts always cascade push → WhatsApp → SMS, and the sprint device bench includes a Tecno. Web push cannot do full-screen call ringing (a §2.1 native trigger, not needed for patient-initiated consults) |
 
 ---
 
@@ -208,7 +208,7 @@ PHI columns (names, clinical text, phone) encrypted at rest via Laravel's encryp
 | Time-to-interactive on throttled 3G / mid-range Android profile | ≤ 5 s | Lighthouse CI budget file (**pending — not yet wired**) |
 | Image uploads | client-side compress to ≤ 200 KB, EXIF-stripped | upload pipeline |
 | API responses | paginated, gzip/brotli, no unbounded lists | code review checklist |
-| Offline | intake + history readable offline; writes queue and sync | Workbox Background Sync configured; Playwright offline-emulation test **pending** |
+| Offline | intake queues offline with a designed "saved — sending when you're back online" state (SW returns 202, replays via Background Sync) | Playwright offline-emulation test still **pending** (needs a preview-server harness) |
 
 Real-device check each sprint: one mid-range Android (~2 GB RAM) on a throttled connection runs the smoke flow.
 
@@ -244,7 +244,7 @@ rollback = redeploy previous tag (api image + web artefact both retained);
 
 **Migration policy (firm):** migrations are never auto-executed on remote servers by CI. Each release's migrations are reviewed for backwards-compatibility (expand → migrate → contract pattern) and run as a **deliberate, human-triggered step** in the deploy runbook, with a tested rollback. Destructive migrations require a second reviewer.
 
-Release cadence: ship whenever green — that is the entire point of the PWA strategy. Patient-visible changes will be gated behind simple DB-driven feature flags (a `features` table + cached lookup; **deferred — not yet built**; no third-party flag service).
+Release cadence: ship whenever green — that is the entire point of the PWA strategy. Patient-visible changes gate behind DB-driven feature flags (`features` table + 60s cache, unknown keys OFF — ship dark, flip live; `GET /api/features`).
 
 ---
 
@@ -265,7 +265,7 @@ No aspirational 80%-everything mandates — test depth follows blast radius.
 ## 12. Security & Compliance Implementation
 
 **Identity & access**
-- Sanctum sessions; OTP rate-limiting; sponsor/staff 2FA (TOTP); staff sessions short-lived; per-device list + remote revoke **pending** (erasure revokes all tokens today).
+- Sanctum sessions; OTP rate-limiting; sponsor/staff 2FA (TOTP); per-device session list + revoke-one/revoke-others built (`/me/sessions`; token names carry the device user-agent).
 - RBAC via policies; sponsor sees billing + care-status only unless patient consent toggle is on (enforced in policy layer, not UI).
 - WebSocket channels (Reverb) use signed, per-user channel authorisation — no open channels; consult rooms joinable only by their two participants + authorised staff.
 - Infra accounts (Cloudflare, registrar, hosting, Paystack dashboard) on hardware-key MFA; no shared logins.

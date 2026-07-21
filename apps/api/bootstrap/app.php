@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Modules/Payouts/Console',
         __DIR__.'/../app/Modules/Payments/Console',
         __DIR__.'/../app/Modules/Programmes/Console',
+        __DIR__.'/../app/Modules/Compliance/Console',
     ])
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',

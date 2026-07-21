@@ -49,8 +49,11 @@ class AuthController extends Controller
             Patient::firstOrCreate(['user_id' => $user->id]);
         }
 
+        // Token name doubles as the device label in /me/sessions.
+        $device = substr($request->userAgent() ?? 'Unknown device', 0, 120);
+
         return response()->json([
-            'token' => $user->createToken('pwa')->plainTextToken,
+            'token' => $user->createToken($device)->plainTextToken,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

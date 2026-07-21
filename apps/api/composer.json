@@ -13,6 +13,7 @@
         "laravel/reverb": "*",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
+        "minishlink/web-push": "^8.0",
         "pusher/pusher-php-server": "*"
     },
     "require-dev": {

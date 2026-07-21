@@ -3,8 +3,6 @@
 namespace App\Modules\Messaging\Services;
 
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 /**
  * The notification fallback chain (dev plan §5.1): push → WhatsApp → SMS.
@@ -15,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 class Notifier
 {
     public function __construct(
+        private readonly WebPushSender $push,
         private readonly WhatsAppSender $whatsapp,
         private readonly SmsSender $sms,
     ) {
@@ -22,7 +21,7 @@ class Notifier
 
     public function notify(User $user, string $message): void
     {
-        if ($this->tryPush($user, $message)) {
+        if ($this->push->send($user, $message)) {
             return;
         }
 
@@ -33,18 +32,5 @@ class Notifier
         if ($user->phone !== null) {
             $this->sms->send($user->phone, $message);
         }
-    }
-
-    /** Web push lands when the custom service worker ships; subscriptions are already stored. */
-    private function tryPush(User $user, string $message): bool
-    {
-        $hasSubscription = DB::table('push_subscriptions')->where('user_id', $user->id)->exists();
-
-        if ($hasSubscription) {
-            // Delivery pending the injectManifest service-worker switch — log and fall through.
-            Log::info('push.skipped_pending_sw', ['user_id' => $user->id]);
-        }
-
-        return false;
     }
 }

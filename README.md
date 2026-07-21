@@ -59,6 +59,24 @@ make test        # Pest + web build     ·  make e2e  # Playwright journey
 
 The fixed OTP works because `.env` sets `OTP_TEST_CODE=000000` — the bypass is hard-disabled in production builds.
 
+### External services — all simulated locally, zero accounts needed
+
+Every third-party service sits behind a driver interface that auto-selects a local
+simulator when its credentials are absent (`config/services.php`). Add the real
+key → the real driver activates. No code changes, ever.
+
+| Service | Without credentials (local) | Observe it |
+|---|---|---|
+| **Paystack / Flutterwave** | `FakeGateway`: checkout settles instantly, refunds approve, payout transfers succeed | Payments board in `/admin`; consult queues on "pay" |
+| **Termii SMS** | `LogSmsSender` writes every message to the log | `make sms` (OTPs, reminders, invites, nudges) |
+| **WhatsApp Cloud** | `UnavailableWhatsAppSender` — the Notifier chain honestly falls through to SMS | `make sms` |
+| **Web push** | **Fully real locally** — VAPID keys are self-generated in `.env`, no third party involved | Chrome: allow notifications on a queued consult, then have the doctor join |
+| **OTP SMS codes** | `OTP_TEST_CODE=000000` accepts any phone (non-production only) | sign-in table above |
+| **Daily.co video** | Not simulated — the video module is unbuilt until an account exists | — |
+
+The same pattern means **staging can run the entire business with zero paid
+accounts**, and each real credential can be added independently, in any order.
+
 ## Ground rules
 
 - **British English** everywhere: file names, identifiers, copy (licence, centre, programme).

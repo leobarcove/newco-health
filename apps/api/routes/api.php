@@ -39,6 +39,18 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->
     Route::get('consults/{consult}/messages/{message}/file', [\App\Modules\Consults\Http\AttachmentController::class, 'show'])
         ->middleware('phi.log:attachment.read');
 
+    // Web push subscriptions
+    Route::post('push/subscribe', [\App\Modules\Messaging\Http\PushSubscriptionController::class, 'store']);
+    Route::delete('push/subscribe', [\App\Modules\Messaging\Http\PushSubscriptionController::class, 'destroy']);
+
+    // Feature flags (ship dark, flip live — dev plan §10)
+    Route::get('features', fn () => response()->json(app(\App\Modules\Compliance\Services\FeatureFlags::class)->all()));
+
+    // Per-device sessions (dev plan §12)
+    Route::get('me/sessions', [\App\Modules\Identity\Http\SessionController::class, 'index']);
+    Route::delete('me/sessions/{tokenId}', [\App\Modules\Identity\Http\SessionController::class, 'destroy']);
+    Route::post('me/sessions/revoke-others', [\App\Modules\Identity\Http\SessionController::class, 'destroyOthers']);
+
     // Consents (NDPA ledger)
     Route::get('consents', [\App\Modules\Compliance\Http\ConsentController::class, 'index']);
     Route::post('consents', [\App\Modules\Compliance\Http\ConsentController::class, 'store']);

@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Consult } from '../../lib/api'
+import { subscribeToPush } from '../../lib/push'
 import { Thread } from '../../features/consult/Thread'
 import { Avatar } from '../../ui/primitives'
 
@@ -20,6 +22,11 @@ export function ConsultPage() {
     queryFn: () => api<Consult>(`/consults/${id}`),
     refetchInterval: (q) => (q.state.data && q.state.data.state === 'queued' ? 5000 : false),
   })
+
+  // The contextual push moment: "we'll notify you when the doctor is ready".
+  useEffect(() => {
+    if (consult?.state === 'queued') void subscribeToPush()
+  }, [consult?.state])
 
   if (!consult) {
     return (
