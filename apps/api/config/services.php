@@ -54,6 +54,10 @@ return [
         'phone_id' => env('WHATSAPP_PHONE_ID'),
     ],
 
+    'daily' => [
+        'key' => env('DAILY_API_KEY'),
+    ],
+
     'vapid' => [
         'public' => env('VAPID_PUBLIC_KEY'),
         'private' => env('VAPID_PRIVATE_KEY'),

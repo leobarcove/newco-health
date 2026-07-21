@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Consult } from '../../lib/api'
 import { subscribeToPush } from '../../lib/push'
+import { CallControls } from '../../features/consult/CallControls'
 import { Thread } from '../../features/consult/Thread'
 import { Avatar } from '../../ui/primitives'
 
@@ -59,7 +60,7 @@ export function ConsultPage() {
             </svg>
           </span>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="truncate text-base font-semibold text-slate-900">
             {consult.for_dependant ? `${doctorName} · for ${consult.for_dependant.name}` : doctorName}
           </h1>
@@ -67,6 +68,7 @@ export function ConsultPage() {
         </div>
       </header>
 
+      <CallControls consultId={consult.id} live={consult.state === 'in_consult'} />
       {consult.state === 'triaged' && <PayPanel consultId={consult.id} />}
 
       <div className="min-h-0 flex-1">

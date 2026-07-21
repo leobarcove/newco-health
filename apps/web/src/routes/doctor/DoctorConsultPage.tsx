@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Consult } from '../../lib/api'
+import { CallControls } from '../../features/consult/CallControls'
 import { NotesPanel } from '../../features/consult/NotesPanel'
 import { PrescribePanel } from '../../features/consult/PrescribePanel'
 import { Thread } from '../../features/consult/Thread'
@@ -81,6 +82,8 @@ export function DoctorConsultPage() {
           )}
         </div>
       </div>
+
+      <CallControls consultId={consult.id} live={consult.state === 'in_consult'} />
 
       <div className="flex min-h-0 flex-1">
         <div className="min-h-0 min-w-0 flex-1">

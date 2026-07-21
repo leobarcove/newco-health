@@ -20,6 +20,12 @@ class AppServiceProvider extends ServiceProvider
                 : new LogSmsSender();
         });
 
+        $this->app->bind(\App\Modules\Consults\Services\VideoGateway::class, function () {
+            return config('services.daily.key')
+                ? new \App\Modules\Consults\Services\DailyVideoGateway()
+                : new \App\Modules\Consults\Services\FakeVideoGateway();
+        });
+
         $this->app->bind(\App\Modules\Messaging\Services\WhatsAppSender::class, function () {
             return config('services.whatsapp.token')
                 ? new \App\Modules\Messaging\Services\MetaWhatsAppSender()

@@ -43,6 +43,9 @@ class DevSeeder extends Seeder
 
         $consents = app(ConsentLedger::class);
 
+        // Local demo: the call ladder is visible (fake video driver).
+        app(\App\Modules\Compliance\Services\FeatureFlags::class)->set('video_consults', true, 'enabled locally — fake driver');
+
         // — Doctors with weekly availability —
         $amara = $this->doctor('Amara Okafor', '+2348099999991', 'MDCN/100001');
         $tunde = $this->doctor('Tunde Bakare', '+2348099999992', 'MDCN/100002');

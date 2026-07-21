@@ -36,6 +36,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SetUserLocale::class])->
         ->middleware('phi.log:consult.messages.read');
     Route::post('consults/{consult}/messages', [MessageController::class, 'store']);
     Route::post('consults/{consult}/attachments', [\App\Modules\Consults\Http\AttachmentController::class, 'store']);
+    Route::post('consults/{consult}/video-session', [\App\Modules\Consults\Http\VideoController::class, 'session']);
+    Route::post('consults/{consult}/end-call', [\App\Modules\Consults\Http\VideoController::class, 'endCall']);
     Route::get('consults/{consult}/messages/{message}/file', [\App\Modules\Consults\Http\AttachmentController::class, 'show'])
         ->middleware('phi.log:attachment.read');
 
