@@ -2,10 +2,12 @@ import { useNavigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { ConsoleShell, PageTitle } from '../../ui/shells'
-import { Badge, Card, EmptyState } from '../../ui/primitives'
+import { Avatar, Badge, Card, EmptyState } from '../../ui/primitives'
 
 interface QueueItem {
   id: string
+  patient_name: string
+  for_dependant: string | null
   queued_at: string
   waiting_minutes: number
 }
@@ -54,11 +56,17 @@ export function QueuePage() {
             <li key={item.id}>
               <Card className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-emerald-600/10 text-base font-bold text-emerald-700">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-600/10 text-sm font-bold text-emerald-700">
                     {index + 1}
                   </span>
+                  <Avatar name={item.patient_name} size="md" />
                   <div>
-                    <p className="text-base font-semibold text-slate-900">Next patient</p>
+                    <p className="text-base font-semibold text-slate-900">
+                      {item.patient_name}
+                      {item.for_dependant && (
+                        <span className="font-normal text-slate-500"> · for {item.for_dependant}</span>
+                      )}
+                    </p>
                     <p className="mt-0.5 text-sm text-slate-500">
                       Waiting{' '}
                       <span className={item.waiting_minutes >= 15 ? 'font-semibold text-amber-700' : ''}>

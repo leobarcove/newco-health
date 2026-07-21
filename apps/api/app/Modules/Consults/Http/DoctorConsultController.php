@@ -22,10 +22,15 @@ class DoctorConsultController extends Controller
         $queued = Consult::where('state', Consult::STATE_QUEUED)
             ->orderBy('queued_at')
             ->limit(50)
+            ->with('patient.user', 'dependant')
             ->get();
 
+        // Name + who-it's-for are visible pre-accept; the complaint (the
+        // PHI-heavy part) stays behind acceptance.
         return response()->json($queued->map(fn (Consult $c) => [
             'id' => $c->id,
+            'patient_name' => $c->patient?->user?->name ?: 'Patient',
+            'for_dependant' => $c->dependant?->name,
             'queued_at' => $c->queued_at?->toIso8601String(),
             'waiting_minutes' => (int) abs(now()->diffInMinutes($c->queued_at)),
         ]));

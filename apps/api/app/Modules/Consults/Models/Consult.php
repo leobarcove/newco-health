@@ -52,6 +52,11 @@ class Consult extends Model
         return $this->belongsTo(TriageIntake::class, 'triage_intake_id');
     }
 
+    public function dependant(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Patients\Models\Dependant::class);
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(ConsultMessage::class)->orderBy('created_at');
