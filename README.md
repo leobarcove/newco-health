@@ -37,13 +37,63 @@ Prerequisites: PHP ≥ 8.3, Composer, Node ≥ 22. (Docker optional — sqlite i
 make fresh       # wipe + migrate + seed the full dev dataset
 make api         # API + Filament backoffice on :8000
 make web         # PWA dev server on :5173 (proxies /api → :8000)
-
-# optional extras
-make up          # docker: postgres + redis + mailpit + minio
-make reverb      # websockets on :8080 (chat polls without it)
-make queue       # scheduler: booking reminders, no-show/hold sweeps
-make test        # Pest + web build     ·  make e2e  # Playwright journey
 ```
+
+### Command reference
+
+**Make targets** (run from the repo root):
+
+| Command | What it does |
+|---|---|
+| `make fresh` | Wipe + migrate + reseed everything — the supported reset (sign in again afterwards) |
+| `make seed` | Re-run seeders on the existing DB (can hit unique constraints — prefer `fresh`) |
+| `make api` | Laravel API + Filament backoffice on **:8000** (runs pending migrations first) |
+| `make web` | Vite PWA dev server on **:5173** (service worker active; proxies `/api` → :8000) |
+| `make reverb` | WebSockets on **:8080** — instant chat delivery (without it, chat polls every 3 s) |
+| `make queue` | The scheduler loop — fires every scheduled job below at its due time |
+| `make sms` | Live-tail simulated outbound SMS/WhatsApp (OTPs, reminders, invites, nudges) |
+| `make up` / `make down` | Docker services: Postgres 18, Redis, Mailpit (:8025), MinIO (:9001) |
+| `make test` | Full Pest API suite + web build |
+| `make e2e` | All 5 Playwright golden journeys (boots its own isolated servers) |
+| `make build` | Production SPA build into `apps/web/dist` |
+
+**Scheduled jobs** — run automatically under `make queue`, or fire one on
+demand from `apps/api` with
+`PAO_DISABLE=1 /usr/local/opt/php@8.3/bin/php artisan <command>`:
+
+| Command | Schedule | What it does |
+|---|---|---|
+| `booking:send-reminders` | every 5 min | 24 h/1 h appointment SMS (each sent once), sweeps no-shows, expires unpaid 15-min slot holds |
+| `consults:close-followups` | hourly | Closes consults whose 72-hour follow-up window has passed |
+| `programmes:tick` | hourly | Chronic-care check-in nudges per cadence; lapses expired enrolments (+renewal nudge) |
+| `payouts:run` | Fridays 09:00 | Pays every doctor's pending earnings — one transfer per doctor, `PO-` reference; no bank details → safely skipped |
+| `payments:reconcile` | daily 02:00 | Re-verifies stale pending payments at the provider so missed webhooks never strand a paid patient |
+| `compliance:prune` | daily 03:30 | Retention: expired OTPs, PHI access logs > 24 months, stale push subscriptions (audit + clinical records never touched) |
+
+**One-off artisan commands** (from `apps/api`, same `PAO_DISABLE=1` prefix):
+
+| Command | What it does |
+|---|---|
+| `pharmacy:create-login <PCN-licence> <email>` | Counter login for a registered pharmacy (prints a one-time password) |
+| `migrate:fresh --seed` | What `make fresh` runs |
+| `tinker --execute="…"` | Ad-hoc poking — e.g. flip a feature flag: `app(\App\Modules\Compliance\Services\FeatureFlags::class)->set('video_consults', true);` |
+
+> ⚠️ `PAO_DISABLE=1` matters: Laravel 13's agent-output layer otherwise
+> swallows console output silently (see CLAUDE.md). The `make` targets set it
+> for you. And per the house rule: **never run `migrate` against a remote
+> server** — production migrations are a human runbook step.
+
+**Web workspace scripts** (from the repo root):
+
+| Command | What it does |
+|---|---|
+| `npm run generate -w packages/api-client` | Regenerate TypeScript API types from `openapi.yaml` (CI fails on drift) |
+| `npx playwright test e2e/<file>` (in `apps/web`) | Run a single golden journey |
+| `npx --yes @lhci/cli autorun` | Lighthouse budgets locally (throttled-3G mobile; needs a fresh `make build`) |
+
+**Demo script:** [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md) — the
+full scenario-by-scenario walkthrough (daily flows + 15 edge cases) for
+showing the platform to a doctor.
 
 ### Seeded sign-ins (local OTP code is always `000000`)
 
